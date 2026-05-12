@@ -1,0 +1,23 @@
+target_name: mcp-server-shell
+source: https://pypi.org/project/mcp-server-shell/
+language: python
+mcp_spec_version: '2025-06-18'
+notes: "Generic shell command executor. Single tool, exec capability \u2014 high-risk if exposed to untrusted\
+  \ prompts. Verified by direct capture."
+tools:
+- name: execute_command
+  description: Execute a shell command and return its output
+  input_schema:
+    type: object
+    properties:
+      command:
+        type: string
+        description: Shell command to execute
+    required:
+    - command
+  capabilities:
+  - exec
+  parameter_roles:
+    cmd: command
+    command: command
+  known_vulns: []

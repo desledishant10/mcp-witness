@@ -37,7 +37,10 @@ SCHEMA_FORMAT_ROLES: dict[str, str] = {
 #   param_role    supporting signal — tool has a param classified into this role
 CAPABILITY_LEXICONS: dict[str, dict] = {
     "fs_read": {
-        "name_tokens": {"read", "cat", "ls", "glob", "grep", "head", "tail", "tree", "find"},
+        # Added "search" after mcp-server-file-finder calibration — a tool literally
+        # named `search` whose description was "Universal file search tool". The
+        # reverse-order desc pattern below also targets the same case.
+        "name_tokens": {"read", "cat", "ls", "glob", "grep", "head", "tail", "tree", "find", "search"},
         "name_combos": [
             ("list", "files"), ("list", "directory"), ("list", "dir"),
             ("get", "file"), ("fetch", "file"), ("load", "file"),
@@ -58,6 +61,10 @@ CAPABILITY_LEXICONS: dict[str, dict] = {
             # mcp-server-git calibration: "Shows the working tree status",
             # "Shows the commit logs", "Shows the contents of a commit" etc.
             r"\b(shows?|displays?)\b.{0,30}\b(status|diff|log|contents?|files?|director(y|ies)|trees?|branches?|commits?|tags?)\b",
+            # mcp-server-file-finder calibration: "Universal file search tool" —
+            # noun before verb. Complements the verb-before-noun search pattern
+            # above so both orderings are covered.
+            r"\b(files?|director(y|ies)|workspace)\b.{0,20}\bsearch(es)?\b",
         ],
         "param_role": "path",
     },

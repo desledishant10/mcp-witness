@@ -1,0 +1,20 @@
+{
+  "tools": [
+    {
+      "name": "execute_command",
+      "description": "Execute a shell command and return its output",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "command": {
+            "type": "string",
+            "description": "Shell command to execute"
+          }
+        },
+        "required": [
+          "command"
+        ]
+      }
+    }
+  ]
+}

@@ -69,3 +69,21 @@ targets:
     language: typescript
     status: labeled
     notes: In-memory knowledge graph. TypeScript. Low-capability-surface negative control. Labels best-effort from public docs; verify before promoting to authoritative.
+
+  - name: mcp-server-shell
+    source: https://pypi.org/project/mcp-server-shell/
+    language: python
+    status: labeled
+    notes: Single-tool exec server (`execute_command`). Verified by direct capture. Classifier high-confidence exec; no S-* findings on the description itself.
+
+  - name: mcp-server-file-finder
+    source: https://pypi.org/project/mcp-server-file-finder/
+    language: python
+    status: labeled
+    notes: macOS-only file search via Spotlight (`mdfind`). Single tool literally named `search`. Drove the noun-before-verb fs_read lexicon update.
+
+  - name: mcp-server-http-request
+    source: https://pypi.org/project/mcp-server-http-request/
+    language: python
+    status: labeled
+    notes: Generic HTTP client (GET/POST/PUT/PATCH/DELETE — 5 tools). Same env-dependent SSRF surface as mcp-server-fetch. Tool descriptions use 'Use this to ...' style — deliberately not flagged by S-001 (too common in benign API docs).

@@ -1,0 +1,197 @@
+target_name: mcp-server-http-request
+source: https://pypi.org/project/mcp-server-http-request/
+language: python
+mcp_spec_version: '2025-06-18'
+notes: "Generic HTTP client with full method set (GET/POST/PUT/PATCH/DELETE). Each tool is net_egress;\
+  \ combined with no scheme/host allowlist, has same env-dependent SSRF surface as mcp-server-fetch. Descriptions\
+  \ use 'Use this to ...' agent-directed phrasing \u2014 borderline, not flagged as S-001 by design."
+tools:
+- name: http_get
+  description: Makes an HTTP GET request to the specified URL. Use this to retrieve data from an API or
+    web server.
+  input_schema:
+    description: Parameters for making a GET request.
+    properties:
+      url:
+        description: URL to send GET request to
+        format: uri
+        minLength: 1
+        title: Url
+        type: string
+      headers:
+        anyOf:
+        - additionalProperties:
+            type: string
+          type: object
+        - type: 'null'
+        default: null
+        description: Optional HTTP headers to include in the request as a JSON object
+        title: Headers
+      params:
+        anyOf:
+        - additionalProperties:
+            type: string
+          type: object
+        - type: 'null'
+        default: null
+        description: Optional query parameters to include in the request as a JSON object
+        title: Params
+    required:
+    - url
+    title: GetRequest
+    type: object
+  capabilities:
+  - net_egress
+  parameter_roles:
+    url: url
+  known_vulns: []
+- name: http_post
+  description: Makes an HTTP POST request to the specified URL with an optional body. Use this to create
+    new resources or submit data to an API.
+  input_schema:
+    description: Parameters for making a POST request.
+    properties:
+      url:
+        description: URL to send POST request to
+        format: uri
+        minLength: 1
+        title: Url
+        type: string
+      headers:
+        anyOf:
+        - additionalProperties:
+            type: string
+          type: object
+        - type: 'null'
+        default: null
+        description: Optional HTTP headers to include in the request as a JSON object
+        title: Headers
+      body:
+        anyOf:
+        - type: string
+        - additionalProperties: true
+          type: object
+        - type: 'null'
+        default: null
+        description: Optional request body. Can be a JSON object or a string. If a dict is provided, it
+          will be sent as JSON
+        title: Body
+    required:
+    - url
+    title: PostRequest
+    type: object
+  capabilities:
+  - net_egress
+  parameter_roles:
+    url: url
+  known_vulns: []
+- name: http_put
+  description: Makes an HTTP PUT request to the specified URL with an optional body. Use this to update
+    or replace existing resources in an API.
+  input_schema:
+    description: Parameters for making a PUT request.
+    properties:
+      url:
+        description: URL to send PUT request to
+        format: uri
+        minLength: 1
+        title: Url
+        type: string
+      headers:
+        anyOf:
+        - additionalProperties:
+            type: string
+          type: object
+        - type: 'null'
+        default: null
+        description: Optional HTTP headers to include in the request as a JSON object
+        title: Headers
+      body:
+        anyOf:
+        - type: string
+        - additionalProperties: true
+          type: object
+        - type: 'null'
+        default: null
+        description: Optional request body. Can be a JSON object or a string. If a dict is provided, it
+          will be sent as JSON
+        title: Body
+    required:
+    - url
+    title: PutRequest
+    type: object
+  capabilities:
+  - net_egress
+  parameter_roles:
+    url: url
+  known_vulns: []
+- name: http_patch
+  description: Makes an HTTP PATCH request to the specified URL with an optional body. Use this to partially
+    update existing resources in an API.
+  input_schema:
+    description: Parameters for making a PATCH request.
+    properties:
+      url:
+        description: URL to send PATCH request to
+        format: uri
+        minLength: 1
+        title: Url
+        type: string
+      headers:
+        anyOf:
+        - additionalProperties:
+            type: string
+          type: object
+        - type: 'null'
+        default: null
+        description: Optional HTTP headers to include in the request as a JSON object
+        title: Headers
+      body:
+        anyOf:
+        - type: string
+        - additionalProperties: true
+          type: object
+        - type: 'null'
+        default: null
+        description: Optional request body. Can be a JSON object or a string. If a dict is provided, it
+          will be sent as JSON
+        title: Body
+    required:
+    - url
+    title: PatchRequest
+    type: object
+  capabilities:
+  - net_egress
+  parameter_roles:
+    url: url
+  known_vulns: []
+- name: http_delete
+  description: Makes an HTTP DELETE request to the specified URL. Use this to delete resources from an
+    API.
+  input_schema:
+    description: Parameters for making a DELETE request.
+    properties:
+      url:
+        description: URL to send DELETE request to
+        format: uri
+        minLength: 1
+        title: Url
+        type: string
+      headers:
+        anyOf:
+        - additionalProperties:
+            type: string
+          type: object
+        - type: 'null'
+        default: null
+        description: Optional HTTP headers to include in the request as a JSON object
+        title: Headers
+    required:
+    - url
+    title: DeleteRequest
+    type: object
+  capabilities:
+  - net_egress
+  parameter_roles:
+    url: url
+  known_vulns: []
