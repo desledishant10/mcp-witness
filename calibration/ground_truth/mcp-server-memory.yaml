@@ -1,0 +1,104 @@
+target_name: mcp-server-memory
+source: https://github.com/modelcontextprotocol/servers/tree/main/src/memory
+language: typescript
+mcp_spec_version: "2025-06-18"
+notes: >
+  In-memory knowledge graph server. TypeScript source, so the analyzer
+  cannot process it yet — but the classifier runs on tool definitions
+  regardless of source language. Useful low-capability-surface control:
+  the deliberately-generic verb names (create_*, delete_*, read_*) test
+  whether the lexicon over-fires on names alone when descriptions don't
+  reference files / directories / databases.
+
+  Labels drafted from public docs — verify against a captured tools/list.
+
+tools:
+  - name: create_entities
+    description: "Create multiple new entities in the knowledge graph."
+    input_schema:
+      type: object
+      properties:
+        entities: { type: array }
+    capabilities: []
+    parameter_roles: {}
+    known_vulns: []
+
+  - name: create_relations
+    description: "Create multiple new relations between entities."
+    input_schema:
+      type: object
+      properties:
+        relations: { type: array }
+    capabilities: []
+    parameter_roles: {}
+    known_vulns: []
+
+  - name: add_observations
+    description: "Add new observations to existing entities."
+    input_schema:
+      type: object
+      properties:
+        observations: { type: array }
+    capabilities: []
+    parameter_roles: {}
+    known_vulns: []
+
+  - name: delete_entities
+    description: "Delete multiple entities and their relations from the knowledge graph."
+    input_schema:
+      type: object
+      properties:
+        entityNames: { type: array }
+    capabilities: []
+    parameter_roles: {}
+    known_vulns: []
+
+  - name: delete_observations
+    description: "Delete specific observations from entities."
+    input_schema:
+      type: object
+      properties:
+        deletions: { type: array }
+    capabilities: []
+    parameter_roles: {}
+    known_vulns: []
+
+  - name: delete_relations
+    description: "Delete multiple relations from the knowledge graph."
+    input_schema:
+      type: object
+      properties:
+        relations: { type: array }
+    capabilities: []
+    parameter_roles: {}
+    known_vulns: []
+
+  - name: read_graph
+    description: "Read the entire knowledge graph."
+    input_schema:
+      type: object
+      properties: {}
+    capabilities: []
+    parameter_roles: {}
+    known_vulns: []
+
+  - name: search_nodes
+    description: "Search for nodes in the knowledge graph based on a query."
+    input_schema:
+      type: object
+      properties:
+        query: { type: string }
+    capabilities: []
+    parameter_roles:
+      query: query
+    known_vulns: []
+
+  - name: open_nodes
+    description: "Open specific nodes in the knowledge graph by their names."
+    input_schema:
+      type: object
+      properties:
+        names: { type: array }
+    capabilities: []
+    parameter_roles: {}
+    known_vulns: []

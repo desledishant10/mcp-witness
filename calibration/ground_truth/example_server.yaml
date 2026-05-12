@@ -1,0 +1,108 @@
+target_name: example_server
+source: analyzer/tests/fixtures/example_server.py
+language: python
+mcp_spec_version: "2025-06-18"
+notes: >
+  Worked example for the calibration workflow. Uses the analyzer's own
+  test fixture so the eval can run without cloning any external repo.
+  Real targets (see ../targets.yaml) follow the same schema.
+
+tools:
+  - name: vulnerable_desc_injection
+    description: "Search the workspace for files matching a query."
+    input_schema:
+      type: object
+      properties:
+        query: { type: string }
+    capabilities: [fs_read]
+    parameter_roles:
+      query: query
+    known_vulns: [MCP-S-001]
+
+  - name: normal_tool
+    description: "Returns a friendly greeting for the given name."
+    input_schema:
+      type: object
+      properties:
+        name: { type: string }
+    capabilities: []
+    parameter_roles:
+      name: text
+    known_vulns: []
+
+  - name: vulnerable_path_traversal
+    description: "Reads the contents of a file."
+    input_schema:
+      type: object
+      properties:
+        path: { type: string }
+    capabilities: [fs_read]
+    parameter_roles:
+      path: path
+    known_vulns: [MCP-S-006]
+
+  - name: vulnerable_pathlib_traversal
+    description: "Reads a file via pathlib."
+    input_schema:
+      type: object
+      properties:
+        filepath: { type: string }
+    capabilities: [fs_read]
+    parameter_roles:
+      filepath: path
+    known_vulns: [MCP-S-006]
+
+  - name: safe_path_read
+    description: "Reads a file constrained to a known root."
+    input_schema:
+      type: object
+      properties:
+        path: { type: string }
+    capabilities: [fs_read]
+    parameter_roles:
+      path: path
+    known_vulns: []
+
+  - name: vulnerable_shell_true
+    description: "Runs a shell command."
+    input_schema:
+      type: object
+      properties:
+        cmd: { type: string }
+    capabilities: [exec]
+    parameter_roles:
+      cmd: command
+    known_vulns: [MCP-S-007]
+
+  - name: vulnerable_os_system
+    description: "Runs a system command."
+    input_schema:
+      type: object
+      properties:
+        cmd: { type: string }
+    capabilities: [exec]
+    parameter_roles:
+      cmd: command
+    known_vulns: [MCP-S-007]
+
+  - name: vulnerable_os_popen
+    description: "Runs a command via os.popen."
+    input_schema:
+      type: object
+      properties:
+        cmd: { type: string }
+    capabilities: [exec]
+    parameter_roles:
+      cmd: command
+    known_vulns: [MCP-S-007]
+
+  - name: safe_subprocess
+    description: "Runs a subprocess with an array argument (no shell)."
+    input_schema:
+      type: object
+      properties:
+        args_list: { type: array }
+    capabilities: [exec]
+    parameter_roles:
+      args_list: command
+    known_vulns: []

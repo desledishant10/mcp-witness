@@ -1,0 +1,71 @@
+# Calibration corpus — targets for hand-labeling and evaluation.
+#
+# Status values:
+#   queued     Not yet labeled.
+#   labeled    Ground truth file exists in ground_truth/.
+#   evaluated  Eval results captured in reports/.
+#
+# Updating a target's status is manual — the eval script does not modify
+# this file. When all status==labeled, run the eval against each and
+# generate the aggregate.
+
+targets:
+  - name: example_server
+    source: analyzer/tests/fixtures/example_server.py
+    language: python
+    status: labeled
+    notes: Worked example. The analyzer's own test fixture. Demonstrates the workflow without requiring an external clone.
+
+  - name: mcp-server-time
+    source: https://github.com/modelcontextprotocol/servers/tree/main/src/time
+    language: python
+    status: labeled
+    notes: Reference Python server. Small surface (~3 tools). Labels best-effort from public docs; verify before promoting to authoritative.
+
+  - name: mcp-server-fetch
+    source: https://github.com/modelcontextprotocol/servers/tree/main/src/fetch
+    language: python
+    status: labeled
+    notes: HTTP fetch server. Positive control for net_egress. Labels best-effort from public docs; verify before promoting to authoritative.
+
+  - name: mcp-server-git
+    source: https://github.com/modelcontextprotocol/servers/tree/main/src/git
+    language: python
+    status: labeled
+    notes: Git operations server. 12 tools (status/diff/log/show/branch as fs_read, commit/add/reset/checkout/create_branch as fs_write). Labeled from direct capture of installed package.
+
+  - name: mcp-server-sqlite
+    source: https://github.com/modelcontextprotocol/servers/tree/main/src/sqlite
+    language: python
+    status: queued
+    notes: SQLite query server. Tests db_query / db_write detection.
+
+  - name: mcp-server-filesystem
+    source: https://github.com/modelcontextprotocol/servers/tree/main/src/filesystem
+    language: typescript
+    status: queued
+    notes: Filesystem server. TypeScript — analyzer cannot process source until v0.2; classifier can still run on a captured tools/list.
+
+  - name: mcp-server-github
+    source: https://github.com/modelcontextprotocol/servers/tree/main/src/github
+    language: typescript
+    status: queued
+    notes: GitHub API server. TypeScript. Large surface, mix of read/write/exec-via-workflow.
+
+  - name: mcp-server-postgres
+    source: https://github.com/modelcontextprotocol/servers/tree/main/src/postgres
+    language: typescript
+    status: queued
+    notes: Postgres query server. TypeScript.
+
+  - name: mcp-server-slack
+    source: https://github.com/modelcontextprotocol/servers/tree/main/src/slack
+    language: typescript
+    status: queued
+    notes: Slack API server. TypeScript. Tests messaging exfil patterns.
+
+  - name: mcp-server-memory
+    source: https://github.com/modelcontextprotocol/servers/tree/main/src/memory
+    language: typescript
+    status: labeled
+    notes: In-memory knowledge graph. TypeScript. Low-capability-surface negative control. Labels best-effort from public docs; verify before promoting to authoritative.

@@ -1,0 +1,55 @@
+id: MCP-D-002
+name: Path traversal in filesystem-read tools
+description: >
+  Direct black-box probe: for every tool the harness has classified as
+  filesystem-read capable, attempt a battery of path-traversal payloads
+  against the tool's path-typed argument. Detects servers that fail to
+  canonicalize and verify-against-root the requested path. No agent is
+  required — this is a server-side validation test driven entirely by
+  the harness via JSON-RPC tools/call.
+category: tool.input.path_traversal
+severity: critical
+references:
+  - https://owasp.org/www-community/attacks/Path_Traversal
+  - https://cwe.mitre.org/data/definitions/22.html
+spec_versions: ["2025-06-18"]
+
+requires:
+  capabilities:
+    - any: [fs_read]
+
+setup:
+  fixtures:
+    - id: out_of_root_canary
+      path: "{tmp}/mcp-scan-canary-{run_id}.txt"
+      content: "MCP_SCAN_CANARY_{run_id}"
+      # Harness ensures this absolute path lies outside the server's declared
+      # roots. If the server declared no roots, the scenario is skipped with
+      # an informational finding (cannot distinguish vuln from intent).
+      must_be_outside_roots: true
+
+attack:
+  - step: tools_call
+    target_tool_capability: fs_read
+    argument_role: path
+    payloads:
+      - "{path:out_of_root_canary}"
+      - "../../../../../../../../{path:out_of_root_canary}"
+      - "..%2F..%2F..%2F..%2F..%2F..%2F..%2F..%2F{path:out_of_root_canary}"
+      - "....//....//....//....//....//{path:out_of_root_canary}"
+      - "/{path:out_of_root_canary}"
+      - "file://{path:out_of_root_canary}"
+      - "\\..\\..\\..\\..\\..\\{path:out_of_root_canary}"
+      - "{path:out_of_root_canary}%00.txt"   # null-byte truncation
+      - "{path:out_of_root_canary}%00.txt"
+
+oracle:
+  any_of:
+    - trace_contains:
+        pattern: "MCP_SCAN_CANARY_{run_id}"
+        where: response
+
+cleanup:
+  - remove_fixtures: true
+
+expected_in_baseline: true

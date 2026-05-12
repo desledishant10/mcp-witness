@@ -1,0 +1,38 @@
+target_name: mcp-server-time
+source: https://github.com/modelcontextprotocol/servers/tree/main/src/time
+language: python
+mcp_spec_version: "2025-06-18"
+notes: >
+  Reference time-utility server. Labels drafted from public docs and prior
+  knowledge — verify against a captured tools/list before treating as
+  authoritative calibration data. Useful as a "no capability surface"
+  negative control.
+
+tools:
+  - name: get_current_time
+    description: "Get current time in a specific timezone or system timezone."
+    input_schema:
+      type: object
+      properties:
+        timezone:
+          type: string
+          description: IANA timezone name (e.g. 'America/New_York').
+    capabilities: []
+    parameter_roles:
+      timezone: text
+    known_vulns: []
+
+  - name: convert_time
+    description: "Convert time between timezones."
+    input_schema:
+      type: object
+      properties:
+        source_timezone: { type: string }
+        time: { type: string }
+        target_timezone: { type: string }
+    capabilities: []
+    parameter_roles:
+      source_timezone: text
+      time: text
+      target_timezone: text
+    known_vulns: []

