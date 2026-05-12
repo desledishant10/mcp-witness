@@ -1,0 +1,46 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg
+*.egg-info/
+build/
+dist/
+.eggs/
+pip-wheel-metadata/
+
+# Test / coverage caches
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+.tox/
+.mypy_cache/
+.ruff_cache/
+
+# Virtual envs
+.venv/
+venv/
+env/
+ENV/
+
+# IDE / editor
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+
+# Project-specific —
+# Root-level capture/temp files (NOT calibration/reports/captured-*.json,
+# which are intentional audit artifacts and stay tracked).
+/captured*.json
+/tools.json
+/scratch/
+
+# Local secrets (must never be committed).
+.env
+.env.local
+*.pem
+*.key
