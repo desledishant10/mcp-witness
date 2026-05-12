@@ -87,3 +87,15 @@ targets:
     language: python
     status: labeled
     notes: Generic HTTP client (GET/POST/PUT/PATCH/DELETE — 5 tools). Same env-dependent SSRF surface as mcp-server-fetch. Tool descriptions use 'Use this to ...' style — deliberately not flagged by S-001 (too common in benign API docs).
+
+  - name: mcp-server-anki
+    source: https://pypi.org/project/mcp-server-anki/
+    language: python
+    status: labeled
+    notes: Anki integration (8 tools). Verified by direct capture. Drove the negative-lookbehind fix on the `lists?` pattern (Python type annotations like `Optional[List[str]] - Tags` were causing FP).
+
+  - name: mcp-server-aidd
+    source: https://pypi.org/project/mcp-server-aidd/
+    language: python
+    status: labeled
+    notes: Coding-assistant MCP (33 tools). Verified by direct capture. Largest single target in corpus. First server to trip multiple analyzer rules in one pass (S-001 + S-002 + S-005). See findings/2026-05-11-aidd-three-rule-multi-hit.md.

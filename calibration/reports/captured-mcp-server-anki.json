@@ -1,0 +1,271 @@
+{
+  "tools": [
+    {
+      "name": "anki_search",
+      "description": "Search cards or notes using Anki's search syntax with pagination.\n\nArgs:\n    query: Anki search query (e.g., \"deck:current\", \"tag:important\")\n    search_type: \"cards\" or \"notes\"\n    cursor: Optional pagination cursor\n\nReturns:\n    JSON string with search results and optional nextCursor\n",
+      "inputSchema": {
+        "properties": {
+          "query": {
+            "title": "Query",
+            "type": "string"
+          },
+          "search_type": {
+            "default": "cards",
+            "title": "Search Type",
+            "type": "string"
+          },
+          "cursor": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Cursor"
+          }
+        },
+        "required": [
+          "query"
+        ],
+        "title": "anki_searchArguments",
+        "type": "object"
+      }
+    },
+    {
+      "name": "anki_create_notes",
+      "description": "Create one or more notes in Anki.\n\nArgs:\n    notes: List of note specifications with:\n        - deckName: str\n        - modelName: str\n        - fields: Dict[str, str]\n        - tags: Optional[List[str]]\n\nReturns:\n    List of note IDs (None for notes that couldn't be added)\n",
+      "inputSchema": {
+        "properties": {
+          "notes": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "title": "Notes",
+            "type": "array"
+          }
+        },
+        "required": [
+          "notes"
+        ],
+        "title": "anki_create_notesArguments",
+        "type": "object"
+      }
+    },
+    {
+      "name": "anki_update_note",
+      "description": "Update a note's fields and/or tags.\n\nArgs:\n    note: Note specification with:\n        - id: int - Note ID\n        - fields: Optional[Dict[str, str]] - Fields to update\n        - tags: Optional[List[str]] - New tags\n",
+      "inputSchema": {
+        "properties": {
+          "note": {
+            "additionalProperties": true,
+            "title": "Note",
+            "type": "object"
+          }
+        },
+        "required": [
+          "note"
+        ],
+        "title": "anki_update_noteArguments",
+        "type": "object"
+      }
+    },
+    {
+      "name": "anki_manage_tags",
+      "description": "Manage tags on notes.\n\nArgs:\n    action: \"add\" | \"delete\" | \"replace\"\n    note_ids: List of note IDs to modify\n    tags: Tag string for add/delete operations\n    tag_to_replace: Tag to replace (for replace action)\n    replace_with_tag: New tag (for replace action)\n",
+      "inputSchema": {
+        "properties": {
+          "action": {
+            "title": "Action",
+            "type": "string"
+          },
+          "note_ids": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "title": "Note Ids",
+            "type": "array"
+          },
+          "tags": {
+            "title": "Tags",
+            "type": "string"
+          },
+          "tag_to_replace": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Tag To Replace"
+          },
+          "replace_with_tag": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Replace With Tag"
+          }
+        },
+        "required": [
+          "action",
+          "note_ids",
+          "tags"
+        ],
+        "title": "anki_manage_tagsArguments",
+        "type": "object"
+      }
+    },
+    {
+      "name": "anki_change_card_state",
+      "description": "Change card states and properties.\n\nArgs:\n    action: \"suspend\" | \"unsuspend\" | \"forget\" | \"relearn\" | \"set_due\" | \"set_ease\"\n    card_ids: List of card IDs to modify\n    days: Due date specification for set_due (e.g., \"0\", \"1!\", \"3-7\")\n    ease_factors: List of ease factors for set_ease (must match card_ids length)\n\nReturns:\n    Result depends on action (bool for most, list for some)\n",
+      "inputSchema": {
+        "properties": {
+          "action": {
+            "title": "Action",
+            "type": "string"
+          },
+          "card_ids": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "title": "Card Ids",
+            "type": "array"
+          },
+          "days": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Days"
+          },
+          "ease_factors": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "integer"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Ease Factors"
+          }
+        },
+        "required": [
+          "action",
+          "card_ids"
+        ],
+        "title": "anki_change_card_stateArguments",
+        "type": "object"
+      }
+    },
+    {
+      "name": "anki_gui_control",
+      "description": "Control Anki GUI for interactive learning.\n\nArgs:\n    action: \"current_card\" | \"show_answer\" | \"answer\" | \"undo\"\n    ease: Answer ease for \"answer\" action (1=Again, 2=Hard, 3=Good, 4=Easy)\n\nReturns:\n    Result depends on action\n",
+      "inputSchema": {
+        "properties": {
+          "action": {
+            "title": "Action",
+            "type": "string"
+          },
+          "ease": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Ease"
+          }
+        },
+        "required": [
+          "action"
+        ],
+        "title": "anki_gui_controlArguments",
+        "type": "object"
+      }
+    },
+    {
+      "name": "anki_delete_notes",
+      "description": "Delete notes by their IDs.\n\nArgs:\n    note_ids: List of note IDs to delete\n",
+      "inputSchema": {
+        "properties": {
+          "note_ids": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "title": "Note Ids",
+            "type": "array"
+          }
+        },
+        "required": [
+          "note_ids"
+        ],
+        "title": "anki_delete_notesArguments",
+        "type": "object"
+      }
+    },
+    {
+      "name": "anki_update_deck_config",
+      "description": "Update deck configuration.\n\nArgs:\n    config: Configuration object to save\n\nReturns:\n    True if successful\n",
+      "inputSchema": {
+        "properties": {
+          "config": {
+            "additionalProperties": true,
+            "title": "Config",
+            "type": "object"
+          }
+        },
+        "required": [
+          "config"
+        ],
+        "title": "anki_update_deck_configArguments",
+        "type": "object"
+      }
+    }
+  ]
+}

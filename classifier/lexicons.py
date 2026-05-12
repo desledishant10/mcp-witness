@@ -50,7 +50,10 @@ CAPABILITY_LEXICONS: dict[str, dict] = {
             r"\breads?\b.{0,30}\bfile\b",
             # Expanded after mcp-server-git calibration to cover repo nouns
             # ("List Git branches") without losing the original fs nouns.
-            r"\blists?\b.{0,30}\b(files?|director(y|ies)|contents?|branches?|commits?|tags?|repositor(y|ies))\b",
+            # The (?<!\[) lookbehind was added after mcp-server-anki calibration
+            # surfaced a FP on Python type annotations like `Optional[List[str]] - Tags`
+            # where `List` matched `\blists?\b` and `Tags` matched the alternation.
+            r"(?<!\[)\blists?\b(?![\[\(]).{0,30}\b(files?|director(y|ies)|contents?|branches?|commits?|tags?|repositor(y|ies))\b",
             r"\breturns? .{0,30}\bcontents?\b",
             r"\bgets? .{0,30}\bfile\b",
             r"\bopens? .{0,30}\bfile\b",

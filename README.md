@@ -3,8 +3,8 @@
 [![tests](https://github.com/desledishant10/mcp-scan/actions/workflows/tests.yml/badge.svg)](https://github.com/desledishant10/mcp-scan/actions/workflows/tests.yml)
 [![license: Apache 2.0](https://img.shields.io/badge/license-Apache_2.0-blue.svg)](LICENSE)
 [![python: 3.11+](https://img.shields.io/badge/python-3.11+-blue)](pyproject.toml)
-[![findings: 5](https://img.shields.io/badge/findings-5-orange)](findings/)
-[![corpus: 8 targets](https://img.shields.io/badge/corpus-8_targets-green)](calibration/ground_truth/)
+[![findings: 6](https://img.shields.io/badge/findings-6-orange)](findings/)
+[![corpus: 10 targets](https://img.shields.io/badge/corpus-10_targets_stable-green)](calibration/ground_truth/)
 
 > Security scanner for Model Context Protocol servers and AI agents.
 
@@ -95,7 +95,7 @@ Scenario YAML format: [docs/scenario-schema.md](docs/scenario-schema.md). The se
 
 Layer 1 (lexical) classifier shared by analyzer rules and harness scenario filtering. 8 capability tags, 8 parameter roles, three-tier confidence (`high` / `medium` / `low`). Per the [spec](docs/capability-classifier.md), promotion to "stable" requires ≥10-target corpus + ≥90% precision on `high`-confidence outputs.
 
-**Current calibration corpus state:** 8 labeled targets, 40 tools, **100% precision and 100% recall on all four exercised capability tags** (`exec`, `fs_read`, `fs_write`, `net_egress`). Verified by direct capture against 6 of 8 targets. See [calibration/README.md](calibration/README.md).
+**Current calibration corpus state:** 10 labeled targets, 81 tools, **100% precision and 100% recall on all four exercised capability tags** (`exec`, `fs_read`, `fs_write`, `net_egress`). Verified by direct capture against 8 of 10 targets. Hit the spec's ≥10-target / ≥0.9-precision / ≥0.75-recall "stable" threshold this session. See [calibration/README.md](calibration/README.md).
 
 ### Dynamic harness
 
@@ -155,7 +155,7 @@ Out of scope for v1 (intentional — these are good follow-ups, not features):
 | Tests passing | **88 / 88** |
 | Analyzer rules | 6 of 14 (S-001, S-002, S-003, S-005, S-006, S-007) |
 | Dynamic scenarios | 6 (5 from v0.1 seed set + 1 calibration-driven addition) |
-| Calibration corpus | **8 labeled targets, 40 tools, 100/100 precision-recall** (6 verified by direct capture) |
+| Calibration corpus | **10 labeled targets, 81 tools, 100/100 precision-recall** (8 verified by direct capture) — hit the spec's "stable" threshold |
 | Real-world finding entries | 5 (1 vulnerability, 3 defense, 1 informational) |
 | Packages | 5 (`analyzer`, `classifier`, `harness`, `calibration` + `scenarios` as YAML) |
 | Console scripts | 7 |
