@@ -128,6 +128,56 @@ Next checkpoints:
 - **2026-06-11 (Day +30):** if no engagement, escalate via Anthropic security contact (if available) or via the repo's `SECURITY.md`.
 - **2026-08-10 (Day +90):** public release per embargo, regardless of fix status.
 
-### Pending: `mcp-server-http-request` filing
+### Pending: `mcp-server-http-request` filing (email-based)
 
-The community package needs a separate issue against its upstream repo. To find it: PyPI page → "Homepage" or "Source" link. The disclosure body for that filing should adapt the report above to single-package context and cross-reference modelcontextprotocol/servers#4143 to frame as same-class.
+The PyPI page lists no homepage, no source URL, and no issue tracker. Only contact channel is the maintainer emails listed in the PyPI metadata:
+
+- Esteban Safranchik — `esteban@statespace.com`
+- Gavin Chan — `gavin@statespace.com`
+
+(statespace.com is the publishing org)
+
+Email disclosure is the right channel here — direct to maintainers, with the same 90-day embargo. Email draft below; ready to send.
+
+---
+
+**To:** esteban@statespace.com, gavin@statespace.com
+**CC:** *(your email)*
+**Subject:** Security: SSRF in mcp-server-http-request (coordinated disclosure, 90-day embargo)
+
+> Hi Esteban, Gavin,
+>
+> I'm reaching out as a coordinated security disclosure for `mcp-server-http-request` v0.1.0 on PyPI. Filing by email since the package metadata doesn't list a public issue tracker — happy to move to a private channel of your choice if you have one.
+>
+> **TL;DR:** Same SSRF class as Anthropic's reference `mcp-server-fetch` (disclosed same day as [modelcontextprotocol/servers#4143](https://github.com/modelcontextprotocol/servers/issues/4143)). Your package has no scheme allowlist, no host denylist, and no protection against link-local cloud-metadata addresses. On any cloud-hosted agent host running IMDSv1 or IMDSv2-Optional, an agent prompt-injected into calling `http_get` with an IMDS URL will exfiltrate IAM credentials.
+>
+> **Why I'm flagging yours alongside Anthropic's:** The root cause is identical and the fix shape is identical. Filing both in the same week reduces the chance that one package gets patched while the other lingers, and frames the disclosure as ecosystem-level guidance rather than per-package finger-pointing.
+>
+> **Reproduction:** Identical to the Anthropic finding. Full runbook at https://github.com/desledishant10/mcp-scan/blob/main/docs/audit-runbook-ec2-ssrf-verification.md — substitute `mcp_server_http_request` for `mcp_server_fetch` in the demo script. (I verified the fetch path on an EC2 `t3.micro` 2026-05-12 with real IAM credentials retrieved; haven't separately verified yours on EC2 because the underlying issue is identical, but happy to do so if you'd like an explicit reproduction artifact for your own records.)
+>
+> **Suggested fix:** Mirrors what I proposed to Anthropic — a small in-package URL validator that
+>
+> 1. Allowlists `http://` and `https://` schemes only.
+> 2. Resolves the hostname and rejects RFC-reserved ranges before making the request:
+>    - 169.254.0.0/16 (link-local, all cloud-metadata addresses)
+>    - 127.0.0.0/8, ::1 (loopback)
+>    - 10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16 (RFC 1918)
+>    - fc00::/7 (IPv6 ULA)
+>    - 0.0.0.0/8
+> 3. Provides an opt-in env-var override for users who need to reach internal services.
+>
+> Five tools in your package (`http_get`, `http_post`, `http_put`, `http_patch`, `http_delete`) all share the surface, so the validator goes once at the request-issuing layer.
+>
+> **Embargo:** I'd like to coordinate disclosure with a standard 90-day window. Public release planned for 2026-08-10 unless you've shipped a fix or want to extend, in which case happy to accommodate.
+>
+> **Tooling and disclosure record:** Findings are produced by MCP-Scan, an open-source MCP security scanner I'm building. Full audit trail (including this disclosure draft and the public status of the Anthropic filing) lives at https://github.com/desledishant10/mcp-scan. The detailed finding entry for your package is at https://github.com/desledishant10/mcp-scan/blob/main/findings/2026-05-11-MCP-D-003-http-request-direct-environment-dependent-ssrf.md.
+>
+> Happy to verify any candidate fix before you ship it.
+>
+> Thanks for taking a look,
+> Dishant Desle
+> didesle7@gmail.com
+
+---
+
+After sending, update the `Status:` line at the top of this file to reflect both filings, and append an Updates entry below.
