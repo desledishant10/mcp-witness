@@ -1,15 +1,15 @@
 # Default SSRF surface in Python MCP HTTP-client servers (mcp-server-fetch, mcp-server-http-request)
 
-**Filed:** 2026-05-12 (pending — draft ready for submission)
-**Filed by:** *(your name + email — fill in before submitting)*
+**Filed:** 2026-05-12
+**Filed by:** Dishant Desle — didesle7@gmail.com
 **Filed to:**
-- https://github.com/modelcontextprotocol/servers/issues/new (for `mcp-server-fetch`)
-- https://pypi.org/project/mcp-server-http-request/ → linked upstream repo (for `mcp-server-http-request`)
+- `mcp-server-fetch`: **filed** — https://github.com/modelcontextprotocol/servers/issues/4143
+- `mcp-server-http-request`: pending (upstream repo TBD via PyPI page)
 **Affected:**
 - `mcp-server-fetch` v2025.4.7 (PyPI; Anthropic reference)
 - `mcp-server-http-request` v0.1.0 (PyPI; community)
 **Embargo:** 2026-08-10 (90 days from filing)
-**Status:** draft
+**Status:** filed (mcp-server-fetch); pending (mcp-server-http-request)
 
 ---
 
@@ -71,7 +71,7 @@
 >
 > ### Contact
 >
-> *(your email + preferred response channel — Signal / Keybase / email PGP key if applicable)*
+> Dishant Desle - didesle7@gmail.com
 >
 > Thanks for taking a look.
 
@@ -115,4 +115,19 @@ Updates to this file should reflect each of those touchpoints.
 
 ## Updates
 
-*(none yet — will be added once filed)*
+### 2026-05-12 — `mcp-server-fetch` issue filed
+
+Filed as **modelcontextprotocol/servers#4143**: https://github.com/modelcontextprotocol/servers/issues/4143
+
+Title used: `Security: mcp-server-fetch lacks SSRF protection; cloud-hosted agent hosts can leak IAM credentials`
+
+Body posted matches the "Body of the filed report" section above verbatim (with the Contact line populated). Awaiting maintainer triage and assignment of a security label.
+
+Next checkpoints:
+- **2026-05-26 (Day +14):** if no acknowledgement, polite ping on the issue thread.
+- **2026-06-11 (Day +30):** if no engagement, escalate via Anthropic security contact (if available) or via the repo's `SECURITY.md`.
+- **2026-08-10 (Day +90):** public release per embargo, regardless of fix status.
+
+### Pending: `mcp-server-http-request` filing
+
+The community package needs a separate issue against its upstream repo. To find it: PyPI page → "Homepage" or "Source" link. The disclosure body for that filing should adapt the report above to single-package context and cross-reference modelcontextprotocol/servers#4143 to frame as same-class.

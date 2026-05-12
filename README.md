@@ -18,7 +18,7 @@ Eight documented audit observations against seven PyPI-published servers, captur
 
 | Date | Target | Test | Outcome |
 |---|---|---|---|
-| 2026-05-11 | `mcp-server-fetch` | [D-003 (direct SSRF probe)](findings/2026-05-11-MCP-D-003-fetch-direct-environment-dependent-ssrf.md) | **Vulnerability** — env-dependent SSRF, **demonstrated on EC2 2026-05-12** (real IAM credentials retrieved); [disclosure draft](disclosures/2026-05-12-mcp-fetch-http-request-ssrf.md) |
+| 2026-05-11 | `mcp-server-fetch` | [D-003 (direct SSRF probe)](findings/2026-05-11-MCP-D-003-fetch-direct-environment-dependent-ssrf.md) | **Vulnerability** — env-dependent SSRF, **demonstrated on EC2 2026-05-12** (real IAM credentials retrieved); **disclosure filed 2026-05-12 as [modelcontextprotocol/servers#4143](https://github.com/modelcontextprotocol/servers/issues/4143)** (embargo 2026-08-10) |
 | 2026-05-11 | `mcp-server-http-request` | [D-003 (direct SSRF probe)](findings/2026-05-11-MCP-D-003-http-request-direct-environment-dependent-ssrf.md) | **Vulnerability** — second instance of same SSRF class, different vendor |
 | 2026-05-11 | `mcp-server-fetch` | [D-001 against Claude Opus 4.7](findings/2026-05-11-MCP-D-001-fetch-opus47-defense.md) | Defense |
 | 2026-05-11 | `mcp-server-fetch` | [D-006 against Claude Opus 4.7](findings/2026-05-11-MCP-D-006-fetch-opus47-defense.md) | Defense |

@@ -4,7 +4,7 @@
 **Target:** `mcp-server-fetch` v2025.4.7 (PyPI)
 **Tested by:** [scenarios/MCP-D-003-ssrf-url-fetcher.yaml](../scenarios/MCP-D-003-ssrf-url-fetcher.yaml)
 **Agent driver:** n/a (direct mode — harness as MCP client)
-**Outcome:** **VULNERABILITY (demonstrated on EC2, 2026-05-12)** — high on cloud-hosted agent hosts running IMDSv1 or IMDSv2-Optional; mitigated by IMDSv2-Required (Amazon Linux 2023 default since 2024)
+**Outcome:** **VULNERABILITY (demonstrated on EC2 and disclosed 2026-05-12)** — high on cloud-hosted agent hosts running IMDSv1 or IMDSv2-Optional; mitigated by IMDSv2-Required (Amazon Linux 2023 default since 2024). Coordinated disclosure filed as [modelcontextprotocol/servers#4143](https://github.com/modelcontextprotocol/servers/issues/4143). Embargo: 2026-08-10.
 
 ## Result
 
