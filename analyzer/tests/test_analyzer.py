@@ -845,6 +845,46 @@ def test_s014_resolves_host_from_kwonly_default(tmp_path):
     assert any(f.category == "transport.origin_unchecked" for f in findings)
 
 
+def test_s014_resolves_host_from_os_getenv_default(tmp_path):
+    """v0.3 (W4): `host = os.getenv("HOST", "0.0.0.0")` resolves to the
+    string default. This is the shape mcp-fetch-streamablehttp-server uses."""
+    (tmp_path / "server.py").write_text(
+        "import os\n"
+        "import uvicorn\n"
+        "host = os.getenv('HOST', '0.0.0.0')\n"
+        "port = int(os.getenv('PORT', '3000'))\n"
+        "uvicorn.run(app, host=host, port=port)\n"
+    )
+    findings = check_transport_origin_validation(tmp_path)
+    assert any(f.category == "transport.origin_unchecked" for f in findings)
+
+
+def test_s014_resolves_host_from_os_environ_get_default(tmp_path):
+    """v0.3 (W4): `host = os.environ.get('HOST', '127.0.0.1')` resolves
+    the same way as os.getenv. Both are common idioms."""
+    (tmp_path / "server.py").write_text(
+        "import os\n"
+        "import uvicorn\n"
+        "host = os.environ.get('HOST', '127.0.0.1')\n"
+        "uvicorn.run(app, host=host)\n"
+    )
+    findings = check_transport_origin_validation(tmp_path)
+    assert any(f.category == "transport.origin_unchecked" for f in findings)
+
+
+def test_s014_does_NOT_resolve_getenv_without_default(tmp_path):
+    """v0.3 (W4) negative case: getenv with no default may return None.
+    Without a literal we can compare against, don't guess."""
+    (tmp_path / "server.py").write_text(
+        "import os\n"
+        "import uvicorn\n"
+        "host = os.getenv('HOST')\n"
+        "uvicorn.run(app, host=host)\n"
+    )
+    findings = check_transport_origin_validation(tmp_path)
+    assert not [f for f in findings if f.category == "transport.origin_unchecked"]
+
+
 def test_s014_does_NOT_resolve_unbound_variable(tmp_path):
     """v0.3 (W1) negative case: if the variable isn't bound to a literal
     anywhere in the file, we can't resolve it — the rule stays silent

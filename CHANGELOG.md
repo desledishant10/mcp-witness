@@ -4,13 +4,19 @@ All notable changes to MCP-Scan. Format roughly follows [Keep a Changelog](https
 
 ## [Unreleased] — main branch
 
+### Fixed
+
+- **`_walk_repo_files` substring-on-absolute-path bug.** The skip-fragment check (e.g. `/site-packages/`, `/.venv/`) was matched against the absolute path, which meant *any* scan rooted under `site-packages/` returned zero files. This silently broke `mcp-scan-audit <pypi-pkg>` for the entire v0.2 lifecycle — the documented quickstart workflow. Surfaced by re-running the v0.3 detector against the original DNS-rebind survey targets and getting zero hits despite the patches being correct. The walker now checks skip fragments against the path *relative* to root, so user-pointed-at scans inside one of the skip dirs work correctly.
+
 ### Changed
 
-- **MCP-S-014 detector v0.3 patches.** The DNS-rebinding survey surfaced three false-negative classes in the v0.2 detector; all three are now fixed:
+- **MCP-S-014 detector v0.3 patches.** The DNS-rebinding survey surfaced three false-negative classes in the v0.2 detector; all are now fixed, plus a fourth (W4) surfaced during the post-patch verification re-run:
   - **W1 — host=variable resolution.** The detector previously only resolved string-literal host arguments. `uvicorn.run(app, host=host, port=port)` patterns where `host` is bound to `"0.0.0.0"` earlier (via module-level assignment or function parameter default) now resolve correctly. Pre-pass `_collect_string_bindings(tree)` walks the file for `ast.Assign` and `FunctionDef.args.defaults` / `kwonlyargs` bindings; `_extract_host_value` threads the binding map through and resolves `ast.Name` arguments. File-wide flat scope (no lexical-scope precision) is a deliberate heuristic for a "review this" static rule.
   - **W2 — origin-suppression tightened.** Previously a case-insensitive `\borigin\b` substring match anywhere in the file silenced the rule. Comments like `# CORS handled by Traefik` and wildcard CORS response headers (`Access-Control-Allow-Origin: *`) both qualified. New `_file_validates_origin(tree)` walks the AST for actual request-header reads: `.headers["Origin"]` (subscript) or `.headers.get("Origin", …)` (method call), case-insensitive on the key. Comments, docstrings, and response-header string literals no longer suppress.
   - **W3 — aiohttp.web bind shapes.** `_SERVER_BIND_METHODS` extended with `run_app` (keyword-host pattern: `web.run_app(app, host="…")`) and `TCPSite` (positional-host pattern: `web.TCPSite(runner, "…", port)`). `mcp-server-fetch-sse` and similar aiohttp-based packages no longer slip through the detector.
-- Test suite: **151 → 161** tests (10 new across W1/W2/W3 positive + negative cases).
+  - **W4 — `os.getenv(..., "default")` and `os.environ.get(..., "default")` resolution.** Surfaced during the post-patch verification against `mcp-fetch-streamablehttp-server`, which uses `host = os.getenv("HOST", "0.0.0.0")` — the env-driven default pattern. `_extract_env_default` resolves the second-arg string default; `_collect_string_bindings` calls it for `Assign` nodes whose value is a `Call`. Now binds `name → "default"` for both `os.getenv` and `os.environ.get` shapes.
+- **Verified end-to-end against the original DNS-rebind survey targets.** Re-ran the v0.3 detector on all four installed packages (after fixing the walker bug above). 4 of 4 now correctly fire S-014: `mcp-streamablehttp-proxy` (W1), `mcp-fetch-streamablehttp-server` (W4), `fastmcp-http` (W1), and `mcp-server-fetch-sse` (W1+W3).
+- Test suite: **151 → 164** tests (13 new across W1/W2/W3/W4 positive + negative cases).
 
 ### Disclosure status
 

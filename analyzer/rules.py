@@ -908,8 +908,17 @@ def _walk_repo_files(root: Path):
     if not root.is_dir():
         return
     for f in root.rglob("*"):
-        s = str(f)
-        if any(frag in s for frag in _SKIP_FRAGMENTS):
+        # Check skip fragments against the path RELATIVE to root, so that
+        # scanning a directory that itself lives inside e.g. /site-packages/
+        # doesn't drop every file. The original substring-on-absolute-path
+        # check broke when the scan root was rooted inside one of the
+        # skip dirs (e.g. `mcp-scan-audit` pointing at an installed
+        # package under /opt/anaconda3/lib/.../site-packages/<pkg>/).
+        try:
+            rel = "/" + str(f.relative_to(root)) + "/"
+        except ValueError:
+            rel = str(f)
+        if any(frag in rel for frag in _SKIP_FRAGMENTS):
             continue
         if f.is_file():
             yield f
@@ -1078,12 +1087,21 @@ def _collect_string_bindings(tree: ast.AST) -> dict[str, str]:
     """
     bindings: dict[str, str] = {}
     for node in ast.walk(tree):
-        # `foo = "value"` (assume single-target literal-string assignment)
+        # `foo = "value"` (assume single-target literal-string assignment).
+        # Also (v0.3 W4) `foo = os.getenv("X", "default")` and
+        # `foo = os.environ.get("X", "default")` — resolve to the default
+        # since that's what the production runtime sees when the env var
+        # is unset, which is the common case for "the package shipped a
+        # default that's the actual deployed value".
         if isinstance(node, ast.Assign):
             if len(node.targets) == 1 and isinstance(node.targets[0], ast.Name):
                 val = node.value
                 if isinstance(val, ast.Constant) and isinstance(val.value, str):
                     bindings[node.targets[0].id] = val.value
+                elif isinstance(val, ast.Call):
+                    env_default = _extract_env_default(val)
+                    if env_default is not None:
+                        bindings[node.targets[0].id] = env_default
         # `def f(host="0.0.0.0", ...)` — positional defaults + kw-only defaults.
         elif isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
             args = node.args
@@ -1109,6 +1127,46 @@ def _is_server_bind_call(call: ast.Call) -> bool:
     if isinstance(f.value, ast.Name) and f.value.id in _NOT_SERVER_BIND_OWNERS:
         return False
     return True
+
+
+def _extract_env_default(call: ast.Call) -> str | None:
+    """If `call` is `os.getenv("X", "default")` or
+    `os.environ.get("X", "default")` with a string-literal default,
+    return that default. v0.3 (W4).
+
+    Returns None for one-arg getenv (no default) and for non-string
+    defaults. The surveyed evidence (mcp-fetch-streamablehttp-server) shows
+    `host = os.getenv("HOST", "0.0.0.0")` is the common shape where the
+    documented default IS the deployed bind in practice.
+    """
+    f = call.func
+    if not isinstance(f, ast.Attribute):
+        return None
+
+    # os.getenv("X", "default")
+    if (isinstance(f.value, ast.Name) and f.value.id == "os"
+            and f.attr == "getenv"):
+        # Positional default (2nd arg)
+        if len(call.args) >= 2 and isinstance(call.args[1], ast.Constant):
+            if isinstance(call.args[1].value, str):
+                return call.args[1].value
+        # Keyword default
+        for kw in call.keywords:
+            if kw.arg == "default" and isinstance(kw.value, ast.Constant):
+                if isinstance(kw.value.value, str):
+                    return kw.value.value
+        return None
+
+    # os.environ.get("X", "default")
+    if (f.attr == "get"
+            and isinstance(f.value, ast.Attribute) and f.value.attr == "environ"
+            and isinstance(f.value.value, ast.Name) and f.value.value.id == "os"):
+        if len(call.args) >= 2 and isinstance(call.args[1], ast.Constant):
+            if isinstance(call.args[1].value, str):
+                return call.args[1].value
+        return None
+
+    return None
 
 
 def _extract_host_value(call: ast.Call, bindings: dict[str, str] | None = None) -> str | None:
