@@ -3,11 +3,11 @@
 **Filed:** 2026-06-02
 **Filed by:** Dishant Desle, didesle7@gmail.com
 **Filed to:**
-  - **Primary:** Jack Adamson <jadamson@anthropic.com> (PyPI-listed maintainer-of-record)
-  - **Parallel:** Anthropic Security via HackerOne (`https://hackerone.com/4f1f16ba-10d3-4d09-9ecc-c721aad90f24/embedded_submissions/new`, per `anthropic.com/.well-known/security.txt`) — flagging the brand-attribution concern (see §"Why parallel HackerOne filing" below) alongside the technical vulnerability
+  - **Primary:** Jack Adamson <jadamson@anthropic.com> (PyPI-listed maintainer-of-record) — email sent 2026-06-02
+  - **Parallel:** Anthropic Security at `disclosure@anthropic.com` (the secondary contact published on Anthropic's responsible-disclosure-policy page) — email sent 2026-06-02. Channel changed from the originally-planned HackerOne route mid-filing; see §"HackerOne attempt and pivot to email" below and the Updates section for the full reasoning.
 **Affected:** `mcp-server-fetch-sse` v0.1.1 (PyPI)
 **Embargo:** 2026-08-10 (truncated from the standard 90 days to align with the class-wide DNS-rebind + SSRF public writeup; ~69 days)
-**Status:** drafted — awaiting dispatch (email body + HackerOne submission body finalized below; user to send both)
+**Status:** filed (both channels dispatched 2026-06-02) — awaiting maintainer + Anthropic Security acknowledgement
 
 ---
 
@@ -105,9 +105,23 @@ Both filings reference each other for transparency.
 >
 > MCP-Scan author. Disclosure track record: filed `modelcontextprotocol/servers#4143` on 2026-05-12, independently verified the fix on 2026-05-22. Capstone project, open-source: https://github.com/desledishant10/mcp-scan.
 
-## Why parallel HackerOne filing
+## HackerOne attempt and pivot to email (channel decision narrative)
 
-A vulnerable PyPI package claiming `Author: Anthropic, PBC.` is something Anthropic Security probably wants to know about, regardless of whether the Author attribution is technically legitimate (inherited-fork attribution) or unauthorized. The HackerOne filing routes the information to the right team without making any factual claim about who actually maintains the package — that determination is Anthropic's to make.
+The original plan called for filing the parallel notice via Anthropic's HackerOne program, since that is the channel listed in `anthropic.com/.well-known/security.txt`. The Jack-to-Anthropic email that was sent first (at the top of this disclosure record) references HackerOne as the parallel channel because that was the active plan at send-time.
+
+What actually happened on the HackerOne side:
+
+1. **HackerOne signup friction.** First attempt to create a HackerOne account routed to their customer-onboarding flow (the "$50k/year minimum security budget" sales gate), not the researcher-signup flow. This is a known papercut with HackerOne's homepage navigation — the security researcher signup is at `hackerone.com/users/sign_up`, separate from the `/contact` / "Get Started" CTAs that lead to sales. Resolved by going through the researcher signup directly.
+2. **Form populated successfully** at `https://hackerone.com/4f1f16ba-10d3-4d09-9ecc-c721aad90f24/embedded_submissions/new` with: Asset = `OtherAsset`, Weakness = CWE-918 SSRF, Severity = "Submit report without severity", Title and Description matching the body drafted below in the "Parallel HackerOne submission" section.
+3. **Program triage interstitial fired** on submit. Verbatim text: *"It looks like you're about to submit a report regarding the demo MCP fetch server in the modelcontextprotocol GitHub org. This MCP server is meant to be a demonstration ... if you are reporting the ability to use this to trigger arbitrary web requests: This is a known and expected behavior. ... Please only submit a report about this code if you are able to demonstrate a concrete security vulnerability in it that is unrelated to making web requests to arbitrary destinations."* The interstitial included a checkbox reading *"I understand that submitting this report could impact my reputation points"* and a "Submit report anyway" button.
+4. **Submission cancelled** at the interstitial. The interstitial is a keyword-triggered filter responding to the `mcp-server-fetch` / `modelcontextprotocol` references in the report body, not to the actual content. Even though this report is specifically NOT about the demo SSRF (it's about a *separate* PyPI publication with brand attribution + an inbound DNS-rebind vulnerability that is unrelated to outbound SSRF), pushing past the interstitial risked the report being pattern-matched and dismissed by a busy triager, with a corresponding reputation-points penalty. Disregarding a program's explicit WAIT signal is also poor coordinated-disclosure hygiene.
+5. **Pivoted to email at `disclosure@anthropic.com`.** Anthropic's responsible-disclosure-policy page lists `disclosure@anthropic.com` as a secondary contact ("for guidance before conducting research"). Using that channel for an actual disclosure is a defensible reading of their published comms; the security team can route internally. Critically, an email reaches a human reader without the HackerOne keyword filter in between, so the brand-attribution concern (which is the actually-novel piece for Anthropic Security) lands properly.
+
+The Jack-to-Anthropic email's mention of "via HackerOne" became a minor inaccuracy at the moment of pivot, but the substance (Anthropic Security is being notified in parallel) was preserved by the disclosure@ email sent shortly after. The disclosure@ email's third paragraph explicitly documents the HackerOne→email pivot, so Anthropic Security has full transparency on what happened. No follow-up correction to Jack was sent — the discrepancy is parenthetical and reaching out a second time about a minor channel detail would have added noise without value.
+
+## Why parallel filing (independent of channel)
+
+A vulnerable PyPI package claiming `Author: Anthropic, PBC.` is something Anthropic Security probably wants to know about, regardless of whether the Author attribution is technically legitimate (inherited-fork attribution) or unauthorized. The parallel filing routes the information to the right team without making any factual claim about who actually maintains the package — that determination is Anthropic's to make.
 
 Two outcomes are both fine:
 
@@ -127,4 +141,14 @@ The technical disclosure to Jack Adamson is the primary channel; HackerOne is in
 
 ## Updates
 
-*(Append entries below as the disclosure progresses. Entry format: `### YYYY-MM-DD — <event>`.)*
+### 2026-06-02 — Parallel notice sent to `disclosure@anthropic.com`
+
+Sent to `disclosure@anthropic.com` after the HackerOne attempt was halted at the program triage interstitial (see §"HackerOne attempt and pivot to email"). Subject: *"Vulnerable PyPI package with Anthropic Author attribution — courtesy notification (not the mcp-server-fetch SSRF)"*. The body leads with brand attribution as the primary concern and explicitly disambiguates from the documented-SSRF-in-the-demo class that the HackerOne interstitial filters against, paragraph 3 documents the HackerOne→email pivot transparently. Body references the published finding, the disclosure record, and the prior `mcp-server-fetch` track-record disclosure (#4143 → PR #4226 verified). Anthropic Security acknowledgement pending.
+
+### 2026-06-02 — HackerOne submission attempt halted at program triage interstitial
+
+Form populated successfully at the URL from `anthropic.com/.well-known/security.txt`. On submit, the program's triage interstitial fired with the verbatim text quoted in §"HackerOne attempt and pivot to email" above, plus an explicit "submitting this report could impact my reputation points" warning. Submission cancelled at the interstitial; pivoted to the secondary published channel (`disclosure@anthropic.com`) for the parallel notice. The interstitial is keyword-triggered against `mcp-server-fetch` / `modelcontextprotocol` references and does not engage with the report's actual content (separate PyPI package + brand attribution + DNS-rebind which is *not* the outbound-SSRF class the interstitial dismisses). Decision logged here for the audit trail; the report was *drafted* (see "Parallel HackerOne submission" section above) but *not filed* via HackerOne.
+
+### 2026-06-02 — Email sent to Jack Adamson
+
+Sent to `jadamson@anthropic.com` (the PyPI-listed maintainer-of-record). Subject: *"Security disclosure — mcp-server-fetch-sse v0.1.1 (DNS-rebinding + inherited SSRF)"*. Body matches the draft above verbatim (the "Primary email" section). The body references the parallel notification "via HackerOne" — at send time that was the active plan; the pivot to `disclosure@anthropic.com` happened shortly afterward. The mention is a minor inaccuracy in retrospect, but the substance (Anthropic Security is being notified in parallel) was preserved by the disclosure@ email. No follow-up correction to Jack was sent — the discrepancy is parenthetical and reaching out a second time would have added noise without value. Maintainer acknowledgement pending.

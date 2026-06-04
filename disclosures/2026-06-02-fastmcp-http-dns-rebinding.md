@@ -5,7 +5,7 @@
 **Filed to:** Public issue on [`ARadRareness/mcp-registry`](https://github.com/ARadRareness/mcp-registry) — no private channel published by the maintainer (GHSA disabled, PyPI lists only a GitHub-noreply email, no contact info on the maintainer's GitHub profile)
 **Affected:** `fastmcp-http` v0.1.4 (PyPI)
 **Embargo:** 2026-08-10 (aligned with the parallel DNS-rebind + SSRF class-wide disclosure)
-**Status:** drafted — awaiting dispatch (public issue body finalized below; user to file)
+**Status:** filed (public issue [ARadRareness/mcp-registry#3](https://github.com/ARadRareness/mcp-registry/issues/3)) — awaiting maintainer acknowledgement
 
 ---
 
@@ -82,4 +82,6 @@ The disclosure record itself being public is the responsible-disclosure norm —
 
 ## Updates
 
-*(Append entries below as the disclosure progresses. Entry format: `### YYYY-MM-DD — <event>`.)*
+### 2026-06-02 — Public issue filed
+
+Filed as [ARadRareness/mcp-registry#3](https://github.com/ARadRareness/mcp-registry/issues/3) (UTC timestamp 2026-06-04 in GitHub's display; submitted from `desledishant10` end-of-day 2026-06-02 local). Title and body match the verbatim draft above. The body intentionally omits source-line references, PoC code, and DNS-rebind harness details — embargo principle held by keeping exploit-actionable specifics in the private finding record at [findings/2026-05-12-MCP-S-014-fastmcp-http-dns-rebinding.md](../findings/2026-05-12-MCP-S-014-fastmcp-http-dns-rebinding.md). Awaiting maintainer reply with a private channel for full report.
