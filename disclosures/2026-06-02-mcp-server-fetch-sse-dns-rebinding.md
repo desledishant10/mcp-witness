@@ -7,7 +7,7 @@
   - **Parallel:** Anthropic Security at `disclosure@anthropic.com` (the secondary contact published on Anthropic's responsible-disclosure-policy page) — email sent 2026-06-02. Channel changed from the originally-planned HackerOne route mid-filing; see §"HackerOne attempt and pivot to email" below and the Updates section for the full reasoning.
 **Affected:** `mcp-server-fetch-sse` v0.1.1 (PyPI)
 **Embargo:** 2026-08-10 (truncated from the standard 90 days to align with the class-wide DNS-rebind + SSRF public writeup; ~69 days)
-**Status:** filed (both channels dispatched 2026-06-02) — awaiting maintainer + Anthropic Security acknowledgement
+**Status:** filed (both channels dispatched 2026-06-02); awaiting maintainer acknowledgement. Anthropic-side parallel notification was deflected by intake automation on both attempted channels (HackerOne triage interstitial → cancelled with reputation-points warning; `disclosure@` → no-reply auto-responder routing back to HackerOne / specialized categories with no fit for third-party brand-attribution concerns). No human review reached on the Anthropic side; further escalation declined per coordinated-disclosure hygiene — see §"HackerOne attempt and pivot to email" and Updates for full audit trail.
 
 ---
 
@@ -141,9 +141,27 @@ The technical disclosure to Jack Adamson is the primary channel; HackerOne is in
 
 ## Updates
 
+### 2026-06-03 — `disclosure@anthropic.com` returned an auto-responder; no human review reached
+
+The email sent on 2026-06-02 (see entry below) received an immediate response from `disclosure+noreply@anthropic.com` (the `+noreply` SMTP address pattern confirms this is intake automation, not a human reply). Verbatim auto-response body:
+
+> If this is:
+> - Related to a technical vulnerability in Anthropic systems or applications, please submit the details to our Bug Bounty program at https://hackerone.com/anthropic.
+> - Related to a fraud and abuse concern, please reach out to usersafety@.
+> - Related to a model safety issue, please reach out to modelbugbounty@anthropic.com with your report.
+> - Related to a compliance request for documents, please visit our trust portal at trust.anthropic.com and work with your assigned sales team representative to get access.
+> For all other types of requests, see support.anthropic.com.
+> Thank you, Application Security, Anthropic
+
+The auto-response's category list does not cover a third-party PyPI package brand-attribution concern — Anthropic's bug-bounty scope is explicitly limited to "Anthropic systems or applications" (which a third-party PyPI publication is not), and the other categories (usersafety, modelbugbounty, trust portal, support) don't fit either. The originally-attempted HackerOne channel was deflected at the program triage interstitial (see §"HackerOne attempt and pivot to email" and the entry below); now the disclosure@ channel is auto-deflected back to that same HackerOne route. No further escalation attempted.
+
+**Net effect on the disclosure record:** Anthropic was notified via the two parallel channels they publish (HackerOne + disclosure@); both deflected via their own intake automation; no human review of the brand-attribution flag was reached. This is *not* a personal rejection — there is genuinely no published Anthropic channel for "vulnerable PyPI package claiming Anthropic authorship" — but the audit trail now reflects a good-faith two-channel attempt that was deflected through Anthropic's published intake automation. The primary technical disclosure to the maintainer (Jack Adamson) remains the binding channel for the fix.
+
+If the 2026-08-10 public writeup references the brand-attribution concern, the framing will be factual: Anthropic was notified via their published channels; their intake automation routed the report to HackerOne, which had previously triaged this report class as outside their bug-bounty scope. No adversarial framing — Anthropic's intake routing is a corporate artifact, not a position on the disclosure.
+
 ### 2026-06-02 — Parallel notice sent to `disclosure@anthropic.com`
 
-Sent to `disclosure@anthropic.com` after the HackerOne attempt was halted at the program triage interstitial (see §"HackerOne attempt and pivot to email"). Subject: *"Vulnerable PyPI package with Anthropic Author attribution — courtesy notification (not the mcp-server-fetch SSRF)"*. The body leads with brand attribution as the primary concern and explicitly disambiguates from the documented-SSRF-in-the-demo class that the HackerOne interstitial filters against, paragraph 3 documents the HackerOne→email pivot transparently. Body references the published finding, the disclosure record, and the prior `mcp-server-fetch` track-record disclosure (#4143 → PR #4226 verified). Anthropic Security acknowledgement pending.
+Sent to `disclosure@anthropic.com` after the HackerOne attempt was halted at the program triage interstitial (see §"HackerOne attempt and pivot to email"). Subject: *"Vulnerable PyPI package with Anthropic Author attribution — courtesy notification (not the mcp-server-fetch SSRF)"*. The body leads with brand attribution as the primary concern and explicitly disambiguates from the documented-SSRF-in-the-demo class that the HackerOne interstitial filters against, paragraph 3 documents the HackerOne→email pivot transparently. Body references the published finding, the disclosure record, and the prior `mcp-server-fetch` track-record disclosure (#4143 → PR #4226 verified). Anthropic Security acknowledgement pending — auto-responder received same day (see entry above).
 
 ### 2026-06-02 — HackerOne submission attempt halted at program triage interstitial
 
