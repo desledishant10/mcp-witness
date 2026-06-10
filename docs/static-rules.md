@@ -1,16 +1,19 @@
-# Static Analyzer Ruleset (v0.1)
+# Static Analyzer Ruleset (current state)
 
-This document specifies the detection rules for mcpsentry's static analyzer (Phase 1). Each rule has a stable ID, applies to one or both supported languages, and maps back to the attack-surface taxonomy used by the dynamic harness.
+This document specifies the detection rules for mcpsentry's static analyzer. Each rule has a stable ID, applies to one or both supported languages, and maps back to the attack-surface taxonomy used by the dynamic harness.
+
+**Status:** 14 of 14 v0.1 rules shipped (S-001 through S-014). S-014 received four patches (W1–W4) post-v0.1 surfaced by the [DNS-rebinding survey](../findings/2026-05-12-dns-rebinding-survey.md); those patches are documented in the S-014 section below as a "Detector evolution" subsection. Three real-world vulnerability classes have been surfaced and disclosed by the ruleset: outbound SSRF (S-009 → 2 packages), DNS rebinding (S-014 → 4 packages), and prompt-template injection (S-013 → benign findings to date). See [findings/](../findings/) for the full audit trail.
 
 ## Conventions
 
 - **ID format:** `MCP-S-NNN`. Never reused.
-- **Languages:** `py` (Python MCP SDK), `ts` (TypeScript MCP SDK), or `both`.
+- **Languages:** `py` (Python MCP SDK), `ts` (TypeScript MCP SDK), or `both`. Currently all detectors are Python-only; TypeScript support is queued (tree-sitter-based) for post-2026-08-10.
 - **Severity:** `critical | high | medium | low | info`.
 - **Detection approach:** one of `heuristic` (regex/NLP over strings), `ast` (structural match on parsed source), `taint` (data-flow from source to sink), or `config` (parse declaration metadata such as `tools/list` output or annotations).
 - **False positives:** every rule lists known FP modes. Rules that cannot be tuned below ~20% FP rate in real-world testing are demoted to `info` severity.
+- **Rule shape:** rules belong to one of three registries — `RULES` (per-tool, run on each discovered tool), `SERVER_RULES` (per-server, run on the tool set), or `REPO_RULES` (per-repo, walks the source tree). The shape is declared in the rule's docstring header.
 
-The analyzer uses tree-sitter for both languages. The taint engine is intra-procedural in v0.1; inter-procedural is a v0.2 goal.
+The analyzer parses Python source via the stdlib `ast` module today. The taint engine is intra-procedural; inter-procedural taint is queued for v0.4.
 
 ---
 
@@ -130,13 +133,19 @@ Safe: `subprocess.run([...], shell=False)` with an array (Python); `child_proces
 **FP modes:** queries built with safe ORM builders that look like concatenation; the analyzer maintains an allowlist of known-safe ORM call sites.
 
 ### MCP-S-009 — Unrestricted URL fetch (SSRF)
-**Languages:** both. **Severity:** high. **Approach:** taint.
+**Languages:** both. **Severity:** high. **Approach:** heuristic on captured `tools/list` (current implementation) + taint (queued).
 
-**What:** Tool argument flows into an HTTP client without scheme allowlist or host validation.
+**What:** A tool's URL-typed parameter is unconstrained in the JSON Schema and the tool description shows no validation language.
 
-**Detection:** sinks = `requests.*`, `httpx.*`, `urllib.request.urlopen`, `aiohttp.*`, `urllib3.*` (Python); `fetch`, `axios.*`, `node:http`, `got`, `undici.fetch` (TS). Tainted arg appearing as URL with no preceding validation function. Safe = call to a known validator (e.g. `validate_url`, `is_allowed_url`) or a hardcoded base URL with only path tainted.
+**Detection (current implementation, on captured `tools/list`):** for each tool, find URL-shaped parameters (name in `{url, uri, endpoint, target}` or `format: uri` or any string param whose name contains `url`/`uri`). Flag the tool if **all** of:
+- no `pattern` / `const` / `enum` constraint on that parameter, AND
+- no validation keywords in the tool description (`allowlist`, `scheme is`, `restricted to`, `validates`, `denylist`, etc.).
 
-**FP modes:** tools whose entire purpose is to fetch arbitrary URLs (deliberately). Report still emitted but tagged `intended_capability`.
+This is the heuristic that surfaced both `mcp-server-fetch` and `mcp-server-http-request` from the captured `tools/list` alone, without needing to read the source. It's necessary-but-not-sufficient — a high-precision "review this" prompt that pairs with the dynamic D-003 probe for confirmation.
+
+**Real-world findings:** [findings/2026-05-11-MCP-D-003-fetch-direct-environment-dependent-ssrf.md](../findings/2026-05-11-MCP-D-003-fetch-direct-environment-dependent-ssrf.md) (mcp-server-fetch — disclosed as modelcontextprotocol/servers#4143, fix PR #4226 independently verified 2026-05-22) and [findings/2026-05-11-MCP-D-003-http-request-direct-environment-dependent-ssrf.md](../findings/2026-05-11-MCP-D-003-http-request-direct-environment-dependent-ssrf.md) (mcp-server-http-request).
+
+**FP modes:** tools whose entire purpose is to fetch arbitrary URLs (deliberately). Report still emitted but the user is expected to evaluate severity per deployment posture.
 
 ---
 
@@ -193,6 +202,8 @@ Safe: `subprocess.run([...], shell=False)` with an array (Python); `child_proces
 
 **Detection:** locate HTTP server bind / mount calls. If the address is `0.0.0.0`, `localhost`, or `127.0.0.1` with no middleware that inspects `Origin` against an allowlist, and no auth requirement, flag. Also flag `Access-Control-Allow-Origin: *` paired with credentialed routes.
 
+**Bind methods detected** (`_SERVER_BIND_METHODS`): `uvicorn.run`, `app.run` (Flask/Bottle/standalone ASGI), `web.run_app` (aiohttp keyword-host), `web.TCPSite` (aiohttp positional-host).
+
 **Vulnerable (Python, FastAPI/Starlette pattern):**
 ```python
 app = FastAPI()
@@ -203,7 +214,41 @@ uvicorn.run(app, host="127.0.0.1", port=3000)
 
 **Safe:** middleware that rejects requests whose `Origin` is not in an explicit allowlist, or requires an auth token even on localhost.
 
+**Real-world findings:** four packages surfaced via this rule + the W1–W4 patches below — see the [DNS-rebinding survey](../findings/2026-05-12-dns-rebinding-survey.md). All four are under coordinated disclosure with embargo 2026-08-10:
+- [`mcp-streamablehttp-proxy`](../findings/2026-05-12-MCP-S-014-streamablehttp-proxy-dns-rebinding.md) (W1 — host param bound to function default)
+- [`mcp-fetch-streamablehttp-server`](../findings/2026-05-12-MCP-S-014-fetch-streamablehttp-server-dns-rebinding.md) (W4 — `os.getenv("HOST", "0.0.0.0")` default)
+- [`fastmcp-http`](../findings/2026-05-12-MCP-S-014-fastmcp-http-dns-rebinding.md) (W1 — function default `host="0.0.0.0"`)
+- [`mcp-server-fetch-sse`](../findings/2026-06-02-MCP-S-014-mcp-server-fetch-sse-dns-rebinding.md) (W1 + W3 — `web.TCPSite(runner, host, port)` with `host="localhost"` default)
+
 **FP modes:** servers behind a reverse proxy that handles Origin checks; the analyzer flags but tags `requires_manual_review`.
+
+#### Detector evolution: W1–W4 patches
+
+The original v0.1 implementation of S-014 caught the obvious string-literal bind shape: `uvicorn.run(app, host="0.0.0.0", port=...)` where `host` is an `ast.Constant`. The DNS-rebinding survey on 2026-05-12 demonstrated that four real-world target packages slipped through the v0.1 detector despite being vulnerable. Four patches followed, each motivated by one of the surveyed packages:
+
+**W1 — Host-variable resolution.** Patterns like `uvicorn.run(app, host=host, port=port)` where `host` is bound to `"0.0.0.0"` (or any string literal) earlier in the file — via module-level `Assign` or `FunctionDef.args.defaults` / `kwonlyargs` — need a tree-wide pre-pass that tracks string bindings. `_collect_string_bindings(tree)` walks the file before any rule fires and produces a `{name: literal_string}` map. `_extract_host_value(call, bindings)` threads that map through and resolves `ast.Name` arguments. File-wide flat scope (no lexical-scope precision) is a deliberate heuristic for a "review this" static rule.
+
+Necessary for: `mcp-streamablehttp-proxy` (host bound to function default `"127.0.0.1"`), `fastmcp-http` (function default `"0.0.0.0"`).
+
+**W2 — AST-based Origin suppression.** v0.1 silenced the rule when a case-insensitive substring `\borigin\b` appeared anywhere in the file. That over-suppressed: comments like `# CORS handled by Traefik`, wildcard CORS response headers (`Access-Control-Allow-Origin: *`), and even `origin` substrings inside LLM-instruction prompt strings all qualified.
+
+Replaced with `_file_validates_origin(tree)` — walks the AST for actual *request-header reads*:
+- `request.headers["Origin"]` (subscript), case-insensitive on the key, OR
+- `request.headers.get("Origin", …)` (method call), case-insensitive on the key.
+
+Comments, docstrings, and response-header string literals no longer suppress.
+
+**W3 — aiohttp.web bind shapes.** `_SERVER_BIND_METHODS` extended with `run_app` (keyword-host pattern: `web.run_app(app, host="…")`) and `TCPSite` (positional-host pattern: `web.TCPSite(runner, "…", port)`).
+
+Necessary for: `mcp-server-fetch-sse` and similar aiohttp-based packages.
+
+**W4 — `os.getenv` / `os.environ.get` defaults.** The pattern `host = os.getenv("HOST", "0.0.0.0")` is common in production-shaped code where the env-var fallback **is** the deployed bind. `_extract_env_default(call)` resolves the literal second-arg default; `_collect_string_bindings` calls it for `Assign` nodes whose value is a `Call`. Supports both `os.getenv` and `os.environ.get` shapes.
+
+Necessary for: `mcp-fetch-streamablehttp-server` (`host = os.getenv("HOST", "0.0.0.0")  # noqa: S104`).
+
+After W1–W4, 4 of 4 surveyed packages correctly fire S-014. Test suite grew by 13 cases (151 → 164) covering positive + negative scenarios for each patch.
+
+The lesson worth lifting if you're authoring a similar rule: the survey itself is the input the detector needs to learn from. Detect → miss → patch is the loop; document it honestly.
 
 ---
 
