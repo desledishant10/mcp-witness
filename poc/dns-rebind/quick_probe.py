@@ -56,7 +56,9 @@ def pip_install(package: str) -> None:
 
 def launch_victim() -> subprocess.Popen:
     """Launch mcp-streamablehttp-proxy wrapping mcp-server-time."""
-    print(f"[+] launching victim: mcp-streamablehttp-proxy → mcp-server-time on localhost:{VICTIM_PORT}")
+    print(
+        f"[+] launching victim: mcp-streamablehttp-proxy → mcp-server-time on localhost:{VICTIM_PORT}"
+    )
     return subprocess.Popen(
         [
             "mcp-streamablehttp-proxy",
@@ -109,7 +111,7 @@ def is_mcp_initialize_response(text: str) -> bool:
         if not line:
             continue
         if line.startswith("data:"):
-            line = line[len("data:"):].strip()
+            line = line[len("data:") :].strip()
         try:
             obj = json.loads(line)
         except json.JSONDecodeError:
@@ -144,7 +146,9 @@ def main() -> int:
 
         # ── probe 1: legitimate same-origin request ───────────────────────
         print("[+] probe 1: legitimate request (Origin: http://localhost:3000)")
-        status, text = probe("probe1", {"Origin": "http://localhost:3000", "Host": "localhost:3000"})
+        status, text = probe(
+            "probe1", {"Origin": "http://localhost:3000", "Host": "localhost:3000"}
+        )
         ok = is_mcp_initialize_response(text)
         marker = "MCP initialize response" if ok else f"non-MCP response: {text[:80]}"
         print(f"    → status={status}, body shape: {marker}")
@@ -154,7 +158,9 @@ def main() -> int:
         print("[+] probe 2: request with hostile Origin: http://evil.example")
         status, text = probe("probe2", {"Origin": "http://evil.example", "Host": "localhost:3000"})
         ok2 = is_mcp_initialize_response(text)
-        marker = "MCP initialize response (UNAUTHORIZED ACCEPTED)" if ok2 else f"rejected ({text[:60]})"
+        marker = (
+            "MCP initialize response (UNAUTHORIZED ACCEPTED)" if ok2 else f"rejected ({text[:60]})"
+        )
         print(f"    → status={status}, body shape: {marker}")
         print()
 
@@ -162,7 +168,9 @@ def main() -> int:
         print("[+] probe 3: request with hostile Host: evil.example")
         status, text = probe("probe3", {"Origin": "http://localhost:3000", "Host": "evil.example"})
         ok3 = is_mcp_initialize_response(text)
-        marker = "MCP initialize response (UNAUTHORIZED ACCEPTED)" if ok3 else f"rejected ({text[:60]})"
+        marker = (
+            "MCP initialize response (UNAUTHORIZED ACCEPTED)" if ok3 else f"rejected ({text[:60]})"
+        )
         print(f"    → status={status}, body shape: {marker}")
         print()
 
@@ -181,7 +189,7 @@ def main() -> int:
             print("  For the full reproduction including the browser-side rebind:")
             print("    make demo-full")
             print()
-            return 1     # non-zero — vulnerability confirmed
+            return 1  # non-zero — vulnerability confirmed
         else:
             print("VERDICT: SERVER REJECTED HOSTILE HEADERS")
             print()

