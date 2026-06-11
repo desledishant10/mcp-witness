@@ -115,6 +115,25 @@ Updates to this file should reflect each of those touchpoints.
 
 ## Updates
 
+### 2026-06-11 — Gavin Chan replied on LinkedIn: package is unmaintained
+
+A few hours after the day +30 LinkedIn DMs went out (see entry below), Gavin Chan replied on his own LinkedIn DM thread with: *"Hey thanks for reaching out. That's not an actively maintained package."*
+
+Significance:
+- **Maintainer identity confirmed.** The LinkedIn channel reached a verified cofounder who acknowledges the package. Same identity match as the `Author-email` field in the PyPI wheel metadata.
+- **Status confirmed.** Statespace is not actively maintaining `mcp-server-http-request` v0.1.0. This explains the email silence cleanly — no spam-filter mystery, no wrong-address theory, the package itself is orphaned.
+- **No commitment to fix.** "Not actively maintained" implies no patch is coming.
+- **No commitment yet to yank or deprecate.** Worth following up on — see next step.
+
+Sent a brief follow-up DM on the same thread asking whether Gavin would consider yanking v0.1.0 on PyPI + adding an "unmaintained" notice to the README. Yanking is ~10 minutes of work and would meaningfully reduce real-world risk for anyone who runs `pip install mcp-server-http-request` after the public writeup lands. Framed as a request, not a demand; offered to provide the exact PyPI deprecation steps + a one-paragraph notice draft if useful. Made clear that if yanking isn't an option, the public writeup will still proceed on 2026-08-10 with the maintainer-confirmed-unmaintained framing.
+
+**Updated escalation plan (Statespace track now closed regardless of yank decision):**
+- Day +45 (2026-06-26): **no escalation needed.** Maintainer has responded; soft-channel playbook is no longer relevant for this disclosure. If Gavin agrees to yank, post the yank confirmation in this disclosure record + adjust the public writeup framing.
+- Day +60 (2026-07-11): if no further reply on the yank ask, send one polite nudge with the prepared deprecation steps.
+- Day +90 (2026-08-10): publish per embargo with the documented "maintainer confirmed unmaintained" framing. Whether yank happened or not goes in the writeup as data.
+
+The day +30 escalation is the highest-value outcome of this disclosure track to date — it demonstrates that the LinkedIn-DM channel is materially more effective than email for small-team unmaintained-package scenarios. Worth recording as a methodology lesson for future disclosure-track work.
+
 ### 2026-06-11 — day +30: LinkedIn DMs sent to both cofounders
 
 PyPI wheel metadata for `mcp-server-http-request` v0.1.0 confirms `esteban@statespace.com` + `gavin@statespace.com` as the canonical `Author-email` (verified by inspecting the wheel METADATA file directly). The two emails sent on 2026-05-12 and 2026-06-02 were delivered without SMTP bounces — the address routing works — but never received a reply. `statespace.com` is reachable for email but the website does not load (verified independently; also linked from Esteban Safranchik's own LinkedIn profile as the company URL, where it likewise fails to load), suggesting Statespace as a company may be wound down or inactive.
