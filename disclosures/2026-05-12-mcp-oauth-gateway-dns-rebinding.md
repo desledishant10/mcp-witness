@@ -203,6 +203,18 @@ The earlier SSRF disclosures used public issues + emails because (a) `modelconte
 
 ## Updates
 
+### 2026-06-11 — day +30: third email on thread + escalation plan recorded
+
+Two of the planned softer channels turned out unavailable today:
+- **Twitter `@atrawog`** — confirmed via `gh api users/atrawog` that Andreas Trawoeger has a public Twitter account, but the reporter does not have a Twitter account to send a DM from. Skipped.
+- **atrawog.org** — domain did not resolve from independent network checks today (`URLError: nodename nor servname provided`). Skipped.
+
+So back on the original thread for the day +30 contact. Third email sent referencing the unavailable softer channels, restating the disclosure record URL, and now also pointing at the runnable DNS-rebind PoC harness at [`poc/dns-rebind/`](../poc/dns-rebind/) which was delivered between the day +21 ping and today and reproduces the vulnerability end-to-end in ~10 seconds against the disclosed `mcp-streamablehttp-proxy` v0.2.0 specifically.
+
+The third email explicitly names the day +45 (2026-06-26) escalation: a non-exploitative pointer issue on `atrawog/mcp-oauth-gateway`. That gives Andreas a concrete window to acknowledge before the issue tracker reflects the silence. Body of the pre-drafted pointer issue is in [`disclosures/2026-06-11-day-plus-30-escalation-templates.md`](2026-06-11-day-plus-30-escalation-templates.md) ready to file.
+
+Day +60 (2026-07-11): final notice email if still silent. Day +90 (2026-08-10): publish per embargo. The disclosure record at publication will show three direct emails over 30 days + a documented pointer issue, beyond the normal coordinated-disclosure standard.
+
 ### 2026-06-02 — day +21 follow-up ping sent to atrawog
 
 No response from `atrawog@gmail.com` since the 2026-05-12 filing. Day +14 (2026-05-26) ping was missed in the schedule; sent the follow-up today at day +21 instead. Reply attached to the original thread so it bumps in their inbox. References the parallel SSRF disclosure timeline as concrete evidence of how an engaged maintainer response shape looks (PR within 10 days, fix verified) — frames as informational rather than pressuring. Restates suggested fix (TrustedHostMiddleware + Origin allowlist + change `mcp-fetch-streamablehttp-server` default bind to 127.0.0.1), restates 2026-08-10 embargo.

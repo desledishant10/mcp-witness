@@ -115,6 +115,16 @@ Updates to this file should reflect each of those touchpoints.
 
 ## Updates
 
+### 2026-06-11 — day +30: LinkedIn DMs sent to both cofounders
+
+PyPI wheel metadata for `mcp-server-http-request` v0.1.0 confirms `esteban@statespace.com` + `gavin@statespace.com` as the canonical `Author-email` (verified by inspecting the wheel METADATA file directly). The two emails sent on 2026-05-12 and 2026-06-02 were delivered without SMTP bounces — the address routing works — but never received a reply. `statespace.com` is reachable for email but the website does not load (verified independently; also linked from Esteban Safranchik's own LinkedIn profile as the company URL, where it likewise fails to load), suggesting Statespace as a company may be wound down or inactive.
+
+Soft-channel escalation today via LinkedIn. Both cofounders' profiles independently verified — Esteban Safranchik and Gavin Chan both list "Statespace" / "Cofounder" on LinkedIn, identity-matched against the `Author-email` field in the wheel. DMs sent to both. Body of the DMs offered the polite escape valve — "if statespace is wound down and the package is unmaintained, just let me know and the public writeup will note that" — which often surfaces a response from otherwise-silent maintainers because it acknowledges the most likely real-world explanation for the silence.
+
+The naming collision with `statespace.gg` / `statespacelabs` (a Unity / esports company) is coincidental — that GitHub org has 16 repos, none MCP-related; not the same Statespace.
+
+If both DMs are silent at day +45 (2026-06-26), the soft-channel playbook is exhausted. Day +60 (2026-07-11) will be a final-notice email on the thread explicit about the 2026-08-10 publish date. Day +90: publish per embargo. The disclosure record at that point will show good-faith effort beyond the normal standard, with documented channel-by-channel attempts (2 emails, 2 LinkedIn DMs).
+
 ### 2026-06-02 — day +21 follow-up ping sent to `mcp-server-http-request` maintainers
 
 No response from `esteban@statespace.com` or `gavin@statespace.com` since the 2026-05-12 filing. Day +14 (2026-05-26) ping was missed in the schedule; sent the follow-up today at day +21 instead. Reply attached to the original thread (not a new thread) so it bumps in their inbox. Brief, non-pushy: references the parallel `mcp-server-fetch` fix shipping + verification as substantive new information that justifies the follow-up, restates suggested fix shape, restates 2026-08-10 embargo. No new ask.
