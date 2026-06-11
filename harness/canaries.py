@@ -49,8 +49,8 @@ class CanaryServer:
     def __init__(self, host: str = "127.0.0.1", port: int = 0) -> None:
         self.host = host
         self.port = port
-        self.canaries: dict[str, Canary] = {}    # token -> Canary
-        self._by_id: dict[str, Canary] = {}      # canary id -> Canary
+        self.canaries: dict[str, Canary] = {}  # token -> Canary
+        self._by_id: dict[str, Canary] = {}  # canary id -> Canary
         self._runner: web.AppRunner | None = None
 
     async def start(self) -> None:
@@ -69,8 +69,7 @@ class CanaryServer:
 
     def allocate(self, canary_id: str) -> Canary:
         token = secrets.token_urlsafe(12)
-        c = Canary(id=canary_id, token=token,
-                   url=f"http://{self.host}:{self.port}/{token}")
+        c = Canary(id=canary_id, token=token, url=f"http://{self.host}:{self.port}/{token}")
         self.canaries[token] = c
         self._by_id[canary_id] = c
         return c
@@ -84,12 +83,14 @@ class CanaryServer:
         if not canary:
             return web.Response(status=404)
         body = await req.read()
-        canary.hits.append(CanaryHit(
-            ts=time.time(),
-            method=req.method,
-            path=req.path,
-            query=req.query_string,
-            headers=dict(req.headers),
-            body=body,
-        ))
+        canary.hits.append(
+            CanaryHit(
+                ts=time.time(),
+                method=req.method,
+                path=req.path,
+                query=req.query_string,
+                headers=dict(req.headers),
+                body=body,
+            )
+        )
         return web.Response(status=204)

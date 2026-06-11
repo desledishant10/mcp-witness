@@ -29,13 +29,12 @@ class ToolClassification:
     tool_name: str
     capabilities: list[CapabilityFinding] = field(default_factory=list)
     parameter_roles: dict[str, ParameterRole] = field(default_factory=dict)
-    classification_mode: str = "A"          # A = tool def only, B = + handler AST
+    classification_mode: str = "A"  # A = tool def only, B = + handler AST
 
     def has_capability(self, tag: str, min_confidence: Confidence = "medium") -> bool:
         threshold = _CONFIDENCE_ORDER[min_confidence]
         return any(
-            c.tag == tag and _CONFIDENCE_ORDER[c.confidence] >= threshold
-            for c in self.capabilities
+            c.tag == tag and _CONFIDENCE_ORDER[c.confidence] >= threshold for c in self.capabilities
         )
 
 

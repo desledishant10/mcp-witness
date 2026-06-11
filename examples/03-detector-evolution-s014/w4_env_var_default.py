@@ -9,7 +9,9 @@ and `os.environ.get` shapes.
 
 Expected: MCP-S-014 fires on this file (host resolves to "0.0.0.0").
 """
+
 import os
+
 import uvicorn
 from fastapi import FastAPI
 

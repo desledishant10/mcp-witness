@@ -9,6 +9,7 @@ or `request.headers.get("Origin", ...)` (method call).
 
 Expected: MCP-S-014 fires on this file (comment is not a real Origin check).
 """
+
 import uvicorn
 from fastapi import FastAPI
 

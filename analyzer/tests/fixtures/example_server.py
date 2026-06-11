@@ -22,30 +22,37 @@ class _MCP:
     def tool(self):
         def decorator(f):
             return f
+
         return decorator
 
     def prompt(self):
         def decorator(f):
             return f
+
         return decorator
 
 
 mcp = _MCP()
 
 
-class PromptMessage:                                    # noqa: D401
+class PromptMessage:  # noqa: D401
     """Stub for MCP-S-013 fixtures — see module docstring."""
-    def __init__(self, **_kwargs): pass
+
+    def __init__(self, **_kwargs):
+        pass
 
 
-class TextContent:                                      # noqa: D401
+class TextContent:  # noqa: D401
     """Stub for MCP-S-013 fixtures — see module docstring."""
-    def __init__(self, **_kwargs): pass
+
+    def __init__(self, **_kwargs):
+        pass
 
 
 # ---------------------------------------------------------------------------
 # MCP-S-001 — description injection fixtures
 # ---------------------------------------------------------------------------
+
 
 @mcp.tool()
 def vulnerable_desc_injection(query: str) -> str:
@@ -67,6 +74,7 @@ def normal_tool(name: str) -> str:
 # ---------------------------------------------------------------------------
 # MCP-S-006 — path traversal fixtures
 # ---------------------------------------------------------------------------
+
 
 @mcp.tool()
 def vulnerable_path_traversal(path: str) -> str:
@@ -93,6 +101,7 @@ def safe_path_read(path: str) -> str:
 # ---------------------------------------------------------------------------
 # MCP-S-007 — command injection fixtures
 # ---------------------------------------------------------------------------
+
 
 @mcp.tool()
 def vulnerable_shell_true(cmd: str) -> str:
@@ -174,6 +183,7 @@ def safe_log_debug_gated(token: str) -> str:
 # MCP-S-013 — prompt template injection fixtures
 # ---------------------------------------------------------------------------
 
+
 @mcp.prompt()
 def vulnerable_prompt_system_role(code: str) -> list:
     """System message interpolates a parameter via TextContent f-string."""
@@ -197,7 +207,7 @@ def vulnerable_prompt_format_call(snippet: str) -> list:
     return [
         {
             "role": "system",
-            "content": "Snippet:\n{}".format(snippet),
+            "content": f"Snippet:\n{snippet}",
         }
     ]
 

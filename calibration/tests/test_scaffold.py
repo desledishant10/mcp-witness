@@ -46,10 +46,20 @@ def test_scaffold_accepts_bare_list_input():
 
 def test_scaffold_handles_input_schema_alias():
     """`input_schema` (YAML) and `inputSchema` (JSON-RPC) should both work."""
-    captured = {"tools": [
-        {"name": "t1", "description": "", "inputSchema": {"type": "object", "properties": {"a": {}}}},
-        {"name": "t2", "description": "", "input_schema": {"type": "object", "properties": {"b": {}}}},
-    ]}
+    captured = {
+        "tools": [
+            {
+                "name": "t1",
+                "description": "",
+                "inputSchema": {"type": "object", "properties": {"a": {}}},
+            },
+            {
+                "name": "t2",
+                "description": "",
+                "input_schema": {"type": "object", "properties": {"b": {}}},
+            },
+        ]
+    }
     gt = scaffold(captured, target_name="x")
     assert gt["tools"][0]["input_schema"]["properties"]["a"] == {}
     assert gt["tools"][1]["input_schema"]["properties"]["b"] == {}
@@ -68,8 +78,15 @@ def test_scaffold_validates_against_scenario_like_consumers():
     """The scaffolded shape is consumed by the eval engine — ensure the
     top-level keys it expects are present."""
     gt = scaffold({"tools": []}, target_name="t")
-    for key in ("target_name", "source", "language", "mcp_spec_version",
-                "notes", "tools", "labeled"):
+    for key in (
+        "target_name",
+        "source",
+        "language",
+        "mcp_spec_version",
+        "notes",
+        "tools",
+        "labeled",
+    ):
         assert key in gt, f"missing key {key!r} in scaffold output"
 
 

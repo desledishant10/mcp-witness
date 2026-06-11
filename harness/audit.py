@@ -53,14 +53,15 @@ def _pip_install(package: str) -> None:
     print(f"  $ {' '.join(cmd)}", file=sys.stderr)
     result = subprocess.run(cmd, capture_output=True, text=True)
     if result.returncode != 0:
-        raise RuntimeError(
-            f"pip install failed (exit {result.returncode}):\n{result.stderr}"
-        )
+        raise RuntimeError(f"pip install failed (exit {result.returncode}):\n{result.stderr}")
 
 
-async def audit_package(package: str, install: bool = True,
-                         server_cmd: str | None = None,
-                         server_args: list[str] | None = None) -> dict:
+async def audit_package(
+    package: str,
+    install: bool = True,
+    server_cmd: str | None = None,
+    server_args: list[str] | None = None,
+) -> dict:
     """Audit a pip-installable MCP server. Returns a structured report."""
     if install:
         _pip_install(package)
@@ -88,7 +89,7 @@ async def audit_package(package: str, install: bool = True,
                 captured = await capture(target)
             target_used = target
             break
-        except Exception as e:                              # noqa: BLE001
+        except Exception as e:  # noqa: BLE001
             attempt_log.append(f"  - {cmd_str}\n      {type(e).__name__}: {str(e)[:140]}")
             continue
     if captured is None:
@@ -110,15 +111,19 @@ async def audit_package(package: str, install: bool = True,
 
     # Run analyzer
     from analyzer.analyze import analyze_path
+
     findings = analyze_path(capture_path)
 
     # Run classifier
     from classifier import classify_server
+
     classification = classify_server(captured["tools"])
 
     return {
         "package": package,
-        "target_used": {"command": target_used.command, "args": target_used.args} if target_used else None,
+        "target_used": {"command": target_used.command, "args": target_used.args}
+        if target_used
+        else None,
         "capture_path": str(capture_path),
         "n_tools": len(captured["tools"]),
         "tool_names": [t["name"] for t in captured["tools"]],
@@ -139,14 +144,18 @@ def _format_text(report: dict) -> str:
     lines.append(f"Tools:    {report['n_tools']}")
     if report["tool_names"]:
         names = ", ".join(report["tool_names"][:10])
-        more = f" (+{len(report['tool_names']) - 10} more)" if len(report["tool_names"]) > 10 else ""
+        more = (
+            f" (+{len(report['tool_names']) - 10} more)" if len(report["tool_names"]) > 10 else ""
+        )
         lines.append(f"  {names}{more}")
     caps = report["server_capability_set"] or []
     lines.append(f"Capability tags: {', '.join(caps) if caps else '(none)'}")
     combos = report["overbroad_combinations"]
     if combos:
         for combo in combos:
-            lines.append(f"  ⚠ overbroad combination: {' + '.join(combo['tags'])} ({combo['rationale']})")
+            lines.append(
+                f"  ⚠ overbroad combination: {' + '.join(combo['tags'])} ({combo['rationale']})"
+            )
     findings = report["findings"]
     lines.append("")
     if not findings:
@@ -164,25 +173,34 @@ def _format_text(report: dict) -> str:
 
 
 def main() -> int:
-    p = argparse.ArgumentParser(prog="mcpsentry-audit",
-                                description="One-shot audit of a PyPI-installed MCP server.")
+    p = argparse.ArgumentParser(
+        prog="mcpsentry-audit", description="One-shot audit of a PyPI-installed MCP server."
+    )
     p.add_argument("package", help="PyPI package name (e.g. mcp-server-fetch)")
-    p.add_argument("--no-install", action="store_true",
-                   help="Skip pip install — assume the package is already installed.")
-    p.add_argument("--server-cmd", help="Override entry-point detection. Specify the command to launch.")
-    p.add_argument("--server-arg", action="append", default=[],
-                   help="Argument for --server-cmd (repeatable).")
+    p.add_argument(
+        "--no-install",
+        action="store_true",
+        help="Skip pip install — assume the package is already installed.",
+    )
+    p.add_argument(
+        "--server-cmd", help="Override entry-point detection. Specify the command to launch."
+    )
+    p.add_argument(
+        "--server-arg", action="append", default=[], help="Argument for --server-cmd (repeatable)."
+    )
     p.add_argument("--format", choices=["text", "json"], default="text")
     args = p.parse_args()
 
     try:
-        report = asyncio.run(audit_package(
-            args.package,
-            install=not args.no_install,
-            server_cmd=args.server_cmd,
-            server_args=args.server_arg or None,
-        ))
-    except Exception as e:                                  # noqa: BLE001
+        report = asyncio.run(
+            audit_package(
+                args.package,
+                install=not args.no_install,
+                server_cmd=args.server_cmd,
+                server_args=args.server_arg or None,
+            )
+        )
+    except Exception as e:  # noqa: BLE001
         print(f"ERROR: {e}", file=sys.stderr)
         return 2
 

@@ -90,10 +90,7 @@ def evaluate_target(gt_path: Path) -> EvalReport:
         name = tool["name"]
         pred = pred_by_name[name]
         gt_caps = set(tool.get("capabilities", []) or [])
-        pred_caps = {
-            c.tag for c in pred.capabilities
-            if c.confidence in ("high", "medium")
-        }
+        pred_caps = {c.tag for c in pred.capabilities if c.confidence in ("high", "medium")}
 
         for tag in gt_caps | pred_caps:
             m = report.by_tag.setdefault(tag, TagMetrics(tag=tag))
@@ -111,13 +108,15 @@ def evaluate_target(gt_path: Path) -> EvalReport:
                 report.param_role_correct += 1
 
         if gt_caps != pred_caps:
-            report.per_tool_diffs.append({
-                "tool": name,
-                "expected_caps": sorted(gt_caps),
-                "predicted_caps": sorted(pred_caps),
-                "missing": sorted(gt_caps - pred_caps),
-                "spurious": sorted(pred_caps - gt_caps),
-            })
+            report.per_tool_diffs.append(
+                {
+                    "tool": name,
+                    "expected_caps": sorted(gt_caps),
+                    "predicted_caps": sorted(pred_caps),
+                    "missing": sorted(gt_caps - pred_caps),
+                    "spurious": sorted(pred_caps - gt_caps),
+                }
+            )
 
     return report
 
@@ -236,11 +235,17 @@ def main() -> int:
         nargs="?",
         help="Ground-truth file basename (e.g. 'example_server') or a full path.",
     )
-    p.add_argument("--all", action="store_true",
-                   help="Evaluate every labeled target in ground_truth/ and report aggregate metrics.")
-    p.add_argument("--include-drafts", action="store_true",
-                   help="With --all: include targets marked `labeled: false`. "
-                        "Default: skip drafts so aggregate metrics aren't polluted.")
+    p.add_argument(
+        "--all",
+        action="store_true",
+        help="Evaluate every labeled target in ground_truth/ and report aggregate metrics.",
+    )
+    p.add_argument(
+        "--include-drafts",
+        action="store_true",
+        help="With --all: include targets marked `labeled: false`. "
+        "Default: skip drafts so aggregate metrics aren't polluted.",
+    )
     p.add_argument("--format", choices=["text", "json"], default="text")
     p.add_argument(
         "--calibration-dir",
@@ -263,8 +268,10 @@ def main() -> int:
         print("Error: provide a target name or use --all.", file=sys.stderr)
         return 2
 
-    candidate = args.calibration_dir / "ground_truth" / (
-        args.target if args.target.endswith(".yaml") else f"{args.target}.yaml"
+    candidate = (
+        args.calibration_dir
+        / "ground_truth"
+        / (args.target if args.target.endswith(".yaml") else f"{args.target}.yaml")
     )
     if not candidate.exists():
         candidate = Path(args.target)

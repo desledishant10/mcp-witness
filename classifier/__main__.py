@@ -21,8 +21,13 @@ from .classify import classify_server, classify_tool
 
 def main() -> int:
     p = argparse.ArgumentParser(prog="mcpsentry-classify")
-    p.add_argument("input", type=Path, nargs="?", default=None,
-                   help="Path to JSON file; reads stdin if omitted.")
+    p.add_argument(
+        "input",
+        type=Path,
+        nargs="?",
+        default=None,
+        help="Path to JSON file; reads stdin if omitted.",
+    )
     args = p.parse_args()
 
     raw = args.input.read_text() if args.input else sys.stdin.read()
@@ -35,7 +40,7 @@ def main() -> int:
     elif isinstance(data, dict):
         result = classify_tool(data)
     else:
-        sys.stderr.write("Input must be a tool dict, a list of tools, or {\"tools\": [...]}\n")
+        sys.stderr.write('Input must be a tool dict, a list of tools, or {"tools": [...]}\n')
         return 2
 
     json.dump(asdict(result), sys.stdout, indent=2)

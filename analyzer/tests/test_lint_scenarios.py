@@ -6,7 +6,6 @@ from pathlib import Path
 
 from analyzer.lint_scenarios import lint_scenario
 
-
 SCENARIOS_DIR = Path(__file__).parent.parent.parent / "scenarios"
 
 
@@ -22,7 +21,7 @@ def test_detects_embedded_null_byte(tmp_path):
     bad = tmp_path / "bad.yaml"
     bad.write_bytes(
         b"id: TEST\nname: t\ndescription: d\ncategory: tool.x\n"
-        b"severity: low\nspec_versions: [\"1\"]\nattack: []\n"
+        b'severity: low\nspec_versions: ["1"]\nattack: []\n'
         b"oracle: {}\nbad_field: a\x00b\n"
     )
     issues = lint_scenario(bad)

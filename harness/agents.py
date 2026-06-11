@@ -48,7 +48,7 @@ class StubAgent:
             return
         try:
             await proxy.call_tool_for_agent(tools[0].name, {})
-        except Exception as e:                      # noqa: BLE001
+        except Exception as e:  # noqa: BLE001
             log.debug("stub agent tool call failed (often intended): %s", e)
 
 
@@ -69,11 +69,11 @@ class AnthropicAgent:
 
     def __init__(self, model: str | None = None, max_iterations: int | None = None) -> None:
         try:
-            import anthropic                            # type: ignore[import-not-found]
+            import anthropic  # type: ignore[import-not-found]
         except ImportError as e:
             raise RuntimeError(
                 "AnthropicAgent requires the 'anthropic' package — install with "
-                "`pip install \"mcpsentry[anthropic]\"` or `pip install anthropic`."
+                '`pip install "mcpsentry[anthropic]"` or `pip install anthropic`.'
             ) from e
         if not os.environ.get("ANTHROPIC_API_KEY"):
             raise RuntimeError("AnthropicAgent requires the ANTHROPIC_API_KEY env var.")
@@ -86,10 +86,7 @@ class AnthropicAgent:
 
     async def send_message(self, user_text: str, proxy: ProxySession) -> None:
         self.messages.append({"role": "user", "content": user_text})
-        anthropic_tools = [
-            _tool_to_anthropic_format(t)
-            for t in await proxy.list_tools_for_agent()
-        ]
+        anthropic_tools = [_tool_to_anthropic_format(t) for t in await proxy.list_tools_for_agent()]
 
         for _ in range(self.max_iterations):
             response = await self._api.messages.create(
@@ -109,13 +106,15 @@ class AnthropicAgent:
                     continue
                 try:
                     text = await proxy.call_tool_for_agent(block.name, block.input or {})
-                except Exception as e:                  # noqa: BLE001
+                except Exception as e:  # noqa: BLE001
                     text = f"[tool error: {e}]"
-                tool_results.append({
-                    "type": "tool_result",
-                    "tool_use_id": block.id,
-                    "content": text,
-                })
+                tool_results.append(
+                    {
+                        "type": "tool_result",
+                        "tool_use_id": block.id,
+                        "content": text,
+                    }
+                )
             self.messages.append({"role": "user", "content": tool_results})
 
         log.warning("AnthropicAgent hit max_iterations=%d without end_turn", self.max_iterations)

@@ -63,15 +63,20 @@ def lint_scenario(path: Path) -> list[str]:
         ]
     try:
         Scenario.model_validate(data)
-    except Exception as e:                                  # noqa: BLE001
+    except Exception as e:  # noqa: BLE001
         return [f"schema validation error: {type(e).__name__}: {e}"]
     return []
 
 
 def main() -> int:
     p = argparse.ArgumentParser(prog="mcpsentry-lint-scenarios")
-    p.add_argument("path", type=Path, nargs="?", default=Path("scenarios"),
-                   help="YAML file or directory (default: ./scenarios).")
+    p.add_argument(
+        "path",
+        type=Path,
+        nargs="?",
+        default=Path("scenarios"),
+        help="YAML file or directory (default: ./scenarios).",
+    )
     args = p.parse_args()
 
     if args.path.is_file():

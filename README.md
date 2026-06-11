@@ -1,6 +1,7 @@
 # mcpsentry
 
 [![tests](https://github.com/desledishant10/mcpsentry/actions/workflows/tests.yml/badge.svg)](https://github.com/desledishant10/mcpsentry/actions/workflows/tests.yml)
+[![ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
 [![license: Apache 2.0](https://img.shields.io/badge/license-Apache_2.0-blue.svg)](LICENSE)
 [![python: 3.11+](https://img.shields.io/badge/python-3.11+-blue)](pyproject.toml)
 [![findings: 12](https://img.shields.io/badge/findings-12-orange)](findings/)
@@ -189,6 +190,28 @@ Out of scope for v1 (intentional — these are good follow-ups, not features):
 pip install -e ".[dev]"
 pytest
 ```
+
+With coverage:
+
+```bash
+pytest --cov=analyzer --cov=classifier --cov=harness --cov=calibration --cov-report=term-missing
+```
+
+Lint + format:
+
+```bash
+ruff check .
+ruff format --check .
+```
+
+Optional pre-commit hooks (one-time setup):
+
+```bash
+pip install pre-commit
+pre-commit install
+```
+
+After install, every `git commit` runs ruff + a fast tests subset on push.
 
 For dynamic scenarios that exercise a real LLM, install the optional Anthropic agent and set an API key:
 

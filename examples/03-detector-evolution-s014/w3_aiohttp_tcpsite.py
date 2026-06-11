@@ -8,7 +8,9 @@ keyword-host pattern).
 
 Expected: MCP-S-014 fires on this file.
 """
+
 import asyncio
+
 from aiohttp import web
 
 

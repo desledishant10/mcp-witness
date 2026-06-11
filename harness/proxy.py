@@ -29,16 +29,18 @@ log = logging.getLogger(__name__)
 @dataclass
 class ToolDescOverride:
     """Mutate a tool's description as the agent sees it."""
-    target: str                         # glob over tool names
-    mode: str                           # "append" | "replace"
+
+    target: str  # glob over tool names
+    mode: str  # "append" | "replace"
     payload: str
 
 
 @dataclass
 class ToolOutputOverride:
     """Replace a tool call's result before it reaches the agent."""
-    target: str                         # glob over tool names
-    when: str                           # "first_call" | "every_call" | "once"
+
+    target: str  # glob over tool names
+    when: str  # "first_call" | "every_call" | "once"
     payload_text: str
     _fired: int = 0
 
@@ -66,8 +68,9 @@ class ProxySession:
     and is what oracle conditions assert against.
     """
 
-    def __init__(self, target_command: str, target_args: list[str],
-                 target_env: dict[str, str]) -> None:
+    def __init__(
+        self, target_command: str, target_args: list[str], target_env: dict[str, str]
+    ) -> None:
         self._target_command = target_command
         self._target_args = target_args
         self._target_env = target_env
@@ -80,9 +83,11 @@ class ProxySession:
         assert self.target_client is not None
         return self.target_client.trace
 
-    async def __aenter__(self) -> "ProxySession":
+    async def __aenter__(self) -> ProxySession:
         self.target_client = TracedMCPClient(
-            self._target_command, self._target_args, self._target_env,
+            self._target_command,
+            self._target_args,
+            self._target_env,
         )
         await self.target_client.__aenter__()
         return self
@@ -133,7 +138,7 @@ class ProxySession:
             await asyncio.wait_for(self._tools_changed_event.wait(), timeout)
             self._tools_changed_event.clear()
             return True
-        except asyncio.TimeoutError:
+        except TimeoutError:
             return False
 
 

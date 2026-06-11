@@ -8,9 +8,7 @@ import pytest
 
 from calibration.eval import evaluate_target, format_report_text
 
-GT_PATH = (
-    Path(__file__).parent.parent / "ground_truth" / "example_server.yaml"
-)
+GT_PATH = Path(__file__).parent.parent / "ground_truth" / "example_server.yaml"
 
 
 @pytest.fixture(scope="module")
@@ -60,9 +58,11 @@ def test_text_formatter_produces_output(report):
 
 # Aggregate (--all) ----------------------------------------------------------
 
+
 @pytest.fixture(scope="module")
 def aggregate():
     from calibration.eval import evaluate_all
+
     return evaluate_all(GT_PATH.parent.parent)
 
 
@@ -87,13 +87,13 @@ def test_aggregate_negative_controls_clean(aggregate):
         r = aggregate.per_target[name]
         spurious_tags = {tag for tag, m in r.by_tag.items() if m.false_pos > 0}
         assert spurious_tags == set(), (
-            f"{name} produced spurious caps: {spurious_tags}; "
-            f"per_tool_diffs: {r.per_tool_diffs}"
+            f"{name} produced spurious caps: {spurious_tags}; per_tool_diffs: {r.per_tool_diffs}"
         )
 
 
 def test_aggregate_text_format_works(aggregate):
     from calibration.eval import format_aggregate_text
+
     text = format_aggregate_text(aggregate)
     assert "Aggregate" in text
     assert "Per-target summary" in text

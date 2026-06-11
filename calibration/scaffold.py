@@ -22,9 +22,14 @@ from typing import Any
 import yaml
 
 
-def scaffold(captured: dict | list, target_name: str, source: str = "",
-              language: str = "", spec_version: str = "2025-06-18",
-              notes: str = "") -> dict[str, Any]:
+def scaffold(
+    captured: dict | list,
+    target_name: str,
+    source: str = "",
+    language: str = "",
+    spec_version: str = "2025-06-18",
+    notes: str = "",
+) -> dict[str, Any]:
     if isinstance(captured, list):
         captured = {"tools": captured}
 
@@ -38,7 +43,8 @@ def scaffold(captured: dict | list, target_name: str, source: str = "",
         # precision/recall. Set to true (or remove) once you've filled in
         # capabilities / parameter_roles / known_vulns for each tool.
         "labeled": False,
-        "notes": notes or (
+        "notes": notes
+        or (
             "Auto-scaffolded skeleton. Hand-fill `capabilities`, "
             "`parameter_roles`, and `known_vulns` for each tool, then set "
             "`labeled: true` (or delete the field)."
@@ -47,8 +53,11 @@ def scaffold(captured: dict | list, target_name: str, source: str = "",
             {
                 "name": t.get("name", ""),
                 "description": t.get("description", ""),
-                "input_schema": t.get("inputSchema") or t.get("input_schema") or {
-                    "type": "object", "properties": {},
+                "input_schema": t.get("inputSchema")
+                or t.get("input_schema")
+                or {
+                    "type": "object",
+                    "properties": {},
                 },
                 "capabilities": [],
                 "parameter_roles": {},
@@ -61,18 +70,18 @@ def scaffold(captured: dict | list, target_name: str, source: str = "",
 
 def main() -> int:
     p = argparse.ArgumentParser(prog="mcpsentry-scaffold-gt")
-    p.add_argument("captured", type=Path,
-                   help="Path to captured tools.json (from `mcpsentry-capture`).")
-    p.add_argument("--name", required=True,
-                   help="target_name for the ground-truth file.")
-    p.add_argument("--source", default="",
-                   help="Server source URL or filesystem path.")
-    p.add_argument("--language", default="",
-                   help="Source language: python | typescript | rust | other.")
-    p.add_argument("--spec-version", default="2025-06-18",
-                   help="MCP spec version the server claims.")
-    p.add_argument("--output", "-o", type=Path,
-                   help="Output YAML file. Default: stdout.")
+    p.add_argument(
+        "captured", type=Path, help="Path to captured tools.json (from `mcpsentry-capture`)."
+    )
+    p.add_argument("--name", required=True, help="target_name for the ground-truth file.")
+    p.add_argument("--source", default="", help="Server source URL or filesystem path.")
+    p.add_argument(
+        "--language", default="", help="Source language: python | typescript | rust | other."
+    )
+    p.add_argument(
+        "--spec-version", default="2025-06-18", help="MCP spec version the server claims."
+    )
+    p.add_argument("--output", "-o", type=Path, help="Output YAML file. Default: stdout.")
     args = p.parse_args()
 
     raw = json.loads(args.captured.read_text())

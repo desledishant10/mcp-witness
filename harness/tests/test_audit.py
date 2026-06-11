@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import pytest
 
-from harness.audit import audit_package, _format_text
+from harness.audit import _format_text, audit_package
 
 
 @pytest.mark.asyncio
@@ -15,26 +15,28 @@ async def test_audit_against_mock_server(mock_target):
     target launch command explicitly. Exercises capture + analyze +
     classify + report assembly.
     """
-    target = mock_target([
-        {
-            "name": "fetch_url",
-            "description": "Makes an HTTP request to the given URL.",
-            "input_schema": {
-                "type": "object",
-                "properties": {"url": {"type": "string", "format": "uri"}},
+    target = mock_target(
+        [
+            {
+                "name": "fetch_url",
+                "description": "Makes an HTTP request to the given URL.",
+                "input_schema": {
+                    "type": "object",
+                    "properties": {"url": {"type": "string", "format": "uri"}},
+                },
+                "behavior": "echo",
             },
-            "behavior": "echo",
-        },
-        {
-            "name": "read_file",
-            "description": "Reads the contents of a file at the given path.",
-            "input_schema": {
-                "type": "object",
-                "properties": {"path": {"type": "string"}},
+            {
+                "name": "read_file",
+                "description": "Reads the contents of a file at the given path.",
+                "input_schema": {
+                    "type": "object",
+                    "properties": {"path": {"type": "string"}},
+                },
+                "behavior": "echo",
             },
-            "behavior": "echo",
-        },
-    ])
+        ]
+    )
     server_args = target.args
     server_cmd = target.command
 
@@ -43,6 +45,7 @@ async def test_audit_against_mock_server(mock_target):
     # target.env. The current audit flow doesn't plumb env through to
     # capture — for this test, set it in os.environ via monkeypatch-style.
     import os
+
     saved = dict(os.environ)
     os.environ.update(target.env)
     try:

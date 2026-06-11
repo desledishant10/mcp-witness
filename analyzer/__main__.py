@@ -17,12 +17,18 @@ def main() -> int:
     p = argparse.ArgumentParser(prog="mcpsentry-analyze")
     p.add_argument("path", type=Path, help="File or directory to analyze.")
     p.add_argument("--format", choices=["json", "text"], default="text")
-    p.add_argument("--min-severity",
-                   choices=list(_SEV_ORDER.keys()), default="info",
-                   help="Skip findings below this severity.")
-    p.add_argument("--fail-on", choices=list(_SEV_ORDER.keys()), default="high",
-                   help="Exit non-zero if any finding at or above this severity. "
-                        "Default: high.")
+    p.add_argument(
+        "--min-severity",
+        choices=list(_SEV_ORDER.keys()),
+        default="info",
+        help="Skip findings below this severity.",
+    )
+    p.add_argument(
+        "--fail-on",
+        choices=list(_SEV_ORDER.keys()),
+        default="high",
+        help="Exit non-zero if any finding at or above this severity. Default: high.",
+    )
     args = p.parse_args()
 
     findings = analyze_path(args.path)

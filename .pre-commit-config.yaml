@@ -1,0 +1,43 @@
+# Pre-commit hooks for local development.
+#
+# Install once:
+#   pip install pre-commit
+#   pre-commit install
+#
+# Then every `git commit` runs these checks. CI runs the same checks
+# server-side in .github/workflows/tests.yml so this is purely a fast
+# local shortcut.
+
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: trailing-whitespace
+        exclude: '\.md$'                              # markdown allows trailing whitespace for hard breaks
+      - id: end-of-file-fixer
+      - id: check-yaml
+        args: [--allow-multiple-documents]
+        exclude: 'scenarios/.*\.yaml$'                # scenario YAML lint is mcpsentry-lint-scenarios's job
+      - id: check-json
+      - id: check-toml
+      - id: check-added-large-files
+        args: [--maxkb=500]
+      - id: check-merge-conflict
+
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.7.0
+    hooks:
+      - id: ruff
+        args: [--fix, --exit-non-zero-on-fix]
+      - id: ruff-format
+
+  - repo: local
+    hooks:
+      - id: pytest-fast
+        name: pytest (analyzer + classifier only — fast subset)
+        entry: pytest
+        language: system
+        types: [python]
+        pass_filenames: false
+        args: [analyzer/, classifier/, -q, --no-header]
+        stages: [pre-push]                            # only on push, not every commit

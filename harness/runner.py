@@ -14,9 +14,10 @@ import fnmatch
 import logging
 import re
 import secrets
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Callable
+from typing import Any
 
 import yaml
 
@@ -32,15 +33,20 @@ from .scenario import Scenario
 log = logging.getLogger(__name__)
 
 _PROXY_STEPS = {
-    "inject_tool_description", "inject_tool_output", "inject_resource_content",
-    "mutate_tool_definition", "send_user_message", "wait", "sampling_handler",
+    "inject_tool_description",
+    "inject_tool_output",
+    "inject_resource_content",
+    "mutate_tool_definition",
+    "send_user_message",
+    "wait",
+    "sampling_handler",
 }
 
 
 @dataclass
 class RunResult:
     scenario_id: str
-    passed: bool                            # True = no vulnerability evidence
+    passed: bool  # True = no vulnerability evidence
     oracle_evidence: list[str] = field(default_factory=list)
     skipped_steps: list[str] = field(default_factory=list)
     error: str | None = None
@@ -53,8 +59,9 @@ class Target:
     env: dict[str, str] = field(default_factory=dict)
 
 
-async def run_scenario(scenario_path: Path, target: Target,
-                       agent_factory: Callable[[], AgentDriver] | None = None) -> RunResult:
+async def run_scenario(
+    scenario_path: Path, target: Target, agent_factory: Callable[[], AgentDriver] | None = None
+) -> RunResult:
     spec = yaml.safe_load(scenario_path.read_text())
     scn = Scenario.model_validate(spec)
     if _needs_proxy_mode(scn):
@@ -117,8 +124,9 @@ async def _run_direct_mode(scn: Scenario, target: Target) -> RunResult:
         await canaries.stop()
 
 
-async def _run_proxy_mode(scn: Scenario, target: Target,
-                          agent_factory: Callable[[], AgentDriver]) -> RunResult:
+async def _run_proxy_mode(
+    scn: Scenario, target: Target, agent_factory: Callable[[], AgentDriver]
+) -> RunResult:
     canaries = CanaryServer()
     await canaries.start()
     ctx = _init_ctx(scn, canaries)
@@ -140,7 +148,7 @@ async def _run_proxy_mode(scn: Scenario, target: Target,
                     log.warning("step %s: %s", step.step, e)
                     skipped.append(step.step)
             evidence = _evaluate_oracle(scn.oracle, proxy.trace, ctx)
-    except Exception as e:                                  # noqa: BLE001
+    except Exception as e:  # noqa: BLE001
         log.exception("proxy-mode scenario failed")
         error = f"{type(e).__name__}: {e}"
     finally:
@@ -155,31 +163,38 @@ async def _run_proxy_mode(scn: Scenario, target: Target,
     )
 
 
-async def _dispatch_proxy_step(step: dict[str, Any], proxy: ProxySession,
-                                agent: AgentDriver, ctx: dict[str, Any]) -> None:
+async def _dispatch_proxy_step(
+    step: dict[str, Any], proxy: ProxySession, agent: AgentDriver, ctx: dict[str, Any]
+) -> None:
     kind = step["step"]
     if kind == "inject_tool_description":
-        proxy.state.desc_overrides.append(ToolDescOverride(
-            target=step.get("target_tool", "*"),
-            mode=step.get("mode", "append"),
-            payload=substitute(step["payload"], ctx),
-        ))
+        proxy.state.desc_overrides.append(
+            ToolDescOverride(
+                target=step.get("target_tool", "*"),
+                mode=step.get("mode", "append"),
+                payload=substitute(step["payload"], ctx),
+            )
+        )
         return
     if kind == "inject_tool_output":
         payload = step["payload"]
         text = payload["content"] if isinstance(payload, dict) else str(payload)
-        proxy.state.output_overrides.append(ToolOutputOverride(
-            target=step.get("target_tool", "*"),
-            when=step.get("when", "every_call"),
-            payload_text=substitute(text, ctx),
-        ))
+        proxy.state.output_overrides.append(
+            ToolOutputOverride(
+                target=step.get("target_tool", "*"),
+                when=step.get("when", "every_call"),
+                payload_text=substitute(text, ctx),
+            )
+        )
         return
     if kind == "mutate_tool_definition":
-        proxy.state.desc_overrides.append(ToolDescOverride(
-            target=step.get("target_tool", "*"),
-            mode="replace",
-            payload=substitute(step["new_description"], ctx),
-        ))
+        proxy.state.desc_overrides.append(
+            ToolDescOverride(
+                target=step.get("target_tool", "*"),
+                mode="replace",
+                payload=substitute(step["new_description"], ctx),
+            )
+        )
         if step.get("emit_changed_notification"):
             proxy.notify_tools_changed()
         return
@@ -230,8 +245,9 @@ async def _dispatch(step: dict[str, Any], client: TracedMCPClient, ctx: dict[str
     raise ValueError(f"unknown step type: {kind}")
 
 
-async def _run_tools_call(step: dict[str, Any], client: TracedMCPClient,
-                          ctx: dict[str, Any]) -> None:
+async def _run_tools_call(
+    step: dict[str, Any], client: TracedMCPClient, ctx: dict[str, Any]
+) -> None:
     tools = (await client.list_tools()).tools
     cap = step.get("target_tool_capability")
     if cap:
@@ -254,7 +270,7 @@ async def _run_tools_call(step: dict[str, Any], client: TracedMCPClient,
 def _build_args(step: dict[str, Any], tool: Any, ctx: dict[str, Any]) -> dict[str, Any]:
     args: dict[str, Any] = {}
     for k, v in (step.get("arguments") or {}).items():
-        k_clean = k.lstrip("$.")    # tolerate "$.path" or "path"
+        k_clean = k.lstrip("$.")  # tolerate "$.path" or "path"
         args[k_clean] = substitute(str(v), ctx) if isinstance(v, str) else v
 
     # argument_role: pick the first string-typed parameter as the injection
@@ -269,11 +285,13 @@ def _build_args(step: dict[str, Any], tool: Any, ctx: dict[str, Any]) -> dict[st
 
 
 def _classify(tool: Any):
-    return classify_tool({
-        "name": getattr(tool, "name", ""),
-        "description": getattr(tool, "description", "") or "",
-        "inputSchema": getattr(tool, "inputSchema", None) or {},
-    })
+    return classify_tool(
+        {
+            "name": getattr(tool, "name", ""),
+            "description": getattr(tool, "description", "") or "",
+            "inputSchema": getattr(tool, "inputSchema", None) or {},
+        }
+    )
 
 
 def _has_capability(tool: Any, cap: str) -> bool:

@@ -10,24 +10,24 @@ from __future__ import annotations
 # Parameter name (lowercase) -> role. Exact match → high confidence;
 # substring match → medium.
 PARAM_ROLE_DICT: dict[str, tuple[str, ...]] = {
-    "path":    ("path", "file", "filename", "filepath", "dir", "directory", "folder", "location"),
-    "url":     ("url", "uri", "link", "endpoint", "href", "address"),
+    "path": ("path", "file", "filename", "filepath", "dir", "directory", "folder", "location"),
+    "url": ("url", "uri", "link", "endpoint", "href", "address"),
     "command": ("cmd", "command", "argv", "shell_command", "script"),
-    "query":   ("query", "sql", "filter", "where", "search_query"),
-    "host":    ("host", "hostname", "server", "domain"),
+    "query": ("query", "sql", "filter", "where", "search_query"),
+    "host": ("host", "hostname", "server", "domain"),
     "content": ("body", "content", "data", "payload", "text_content"),
 }
 
 # JSON Schema `format` -> parameter role. Match → high confidence.
 SCHEMA_FORMAT_ROLES: dict[str, str] = {
-    "uri":           "url",
-    "iri":           "url",
+    "uri": "url",
+    "iri": "url",
     "uri-reference": "url",
-    "url":           "url",
-    "hostname":      "host",
-    "idn-hostname":  "host",
-    "ipv4":          "host",
-    "ipv6":          "host",
+    "url": "url",
+    "hostname": "host",
+    "idn-hostname": "host",
+    "ipv4": "host",
+    "ipv6": "host",
 }
 
 # Capability lexicons. For each tag:
@@ -40,11 +40,28 @@ CAPABILITY_LEXICONS: dict[str, dict] = {
         # Added "search" after mcp-server-file-finder calibration — a tool literally
         # named `search` whose description was "Universal file search tool". The
         # reverse-order desc pattern below also targets the same case.
-        "name_tokens": {"read", "cat", "ls", "glob", "grep", "head", "tail", "tree", "find", "search"},
+        "name_tokens": {
+            "read",
+            "cat",
+            "ls",
+            "glob",
+            "grep",
+            "head",
+            "tail",
+            "tree",
+            "find",
+            "search",
+        },
         "name_combos": [
-            ("list", "files"), ("list", "directory"), ("list", "dir"),
-            ("get", "file"), ("fetch", "file"), ("load", "file"),
-            ("read", "file"), ("show", "file"), ("open", "file"),
+            ("list", "files"),
+            ("list", "directory"),
+            ("list", "dir"),
+            ("get", "file"),
+            ("fetch", "file"),
+            ("load", "file"),
+            ("read", "file"),
+            ("show", "file"),
+            ("open", "file"),
         ],
         "desc_patterns": [
             r"\breads?\b.{0,30}\bfile\b",
@@ -73,12 +90,25 @@ CAPABILITY_LEXICONS: dict[str, dict] = {
     },
     "fs_write": {
         "name_tokens": {
-            "write", "create", "delete", "remove", "rename", "move",
-            "mkdir", "touch", "save", "edit", "patch",
+            "write",
+            "create",
+            "delete",
+            "remove",
+            "rename",
+            "move",
+            "mkdir",
+            "touch",
+            "save",
+            "edit",
+            "patch",
         },
         "name_combos": [
-            ("write", "file"), ("create", "file"), ("delete", "file"),
-            ("save", "file"), ("update", "file"), ("modify", "file"),
+            ("write", "file"),
+            ("create", "file"),
+            ("delete", "file"),
+            ("save", "file"),
+            ("update", "file"),
+            ("modify", "file"),
         ],
         "desc_patterns": [
             r"\bwrites?\b.{0,30}(file|disk)",
@@ -100,9 +130,15 @@ CAPABILITY_LEXICONS: dict[str, dict] = {
     "net_egress": {
         "name_tokens": {"fetch", "http", "request", "download", "webhook", "scrape", "post", "put"},
         "name_combos": [
-            ("send", "http"), ("send", "request"), ("get", "url"),
-            ("fetch", "url"), ("call", "api"), ("send", "webhook"),
-            ("http", "get"), ("http", "post"), ("make", "request"),
+            ("send", "http"),
+            ("send", "request"),
+            ("get", "url"),
+            ("fetch", "url"),
+            ("call", "api"),
+            ("send", "webhook"),
+            ("http", "get"),
+            ("http", "post"),
+            ("make", "request"),
         ],
         "desc_patterns": [
             r"\bmakes? .{0,20}\bhttp\b",
@@ -118,9 +154,13 @@ CAPABILITY_LEXICONS: dict[str, dict] = {
     "exec": {
         "name_tokens": {"exec", "execute", "shell", "bash", "eval", "sh"},
         "name_combos": [
-            ("run", "command"), ("run", "script"), ("run", "shell"),
-            ("execute", "command"), ("execute", "code"),
-            ("shell", "exec"), ("eval", "code"),
+            ("run", "command"),
+            ("run", "script"),
+            ("run", "shell"),
+            ("execute", "command"),
+            ("execute", "code"),
+            ("shell", "exec"),
+            ("eval", "code"),
         ],
         "desc_patterns": [
             r"\bexecutes? .{0,20}(command|script|code|shell)",
@@ -133,9 +173,14 @@ CAPABILITY_LEXICONS: dict[str, dict] = {
     "secret_access": {
         "name_tokens": {"secret", "credential", "token", "password", "keychain", "vault"},
         "name_combos": [
-            ("get", "secret"), ("read", "credential"), ("get", "env"),
-            ("read", "token"), ("get", "key"), ("get", "password"),
-            ("fetch", "secret"), ("api", "key"),
+            ("get", "secret"),
+            ("read", "credential"),
+            ("get", "env"),
+            ("read", "token"),
+            ("get", "key"),
+            ("get", "password"),
+            ("fetch", "secret"),
+            ("api", "key"),
         ],
         "desc_patterns": [
             r"\b(reads?|returns?|gets?|fetches?)\b.{0,30}(secret|credential|token|api\s*key|password)\b",
@@ -149,9 +194,15 @@ CAPABILITY_LEXICONS: dict[str, dict] = {
     "db_query": {
         "name_tokens": {"select"},
         "name_combos": [
-            ("query", "database"), ("query", "db"), ("execute", "query"),
-            ("execute", "sql"), ("select", "from"), ("db", "query"),
-            ("sql", "query"), ("mongo", "find"), ("redis", "get"),
+            ("query", "database"),
+            ("query", "db"),
+            ("execute", "query"),
+            ("execute", "sql"),
+            ("select", "from"),
+            ("db", "query"),
+            ("sql", "query"),
+            ("mongo", "find"),
+            ("redis", "get"),
             ("run", "query"),
         ],
         "desc_patterns": [
@@ -166,9 +217,14 @@ CAPABILITY_LEXICONS: dict[str, dict] = {
     "db_write": {
         "name_tokens": {"insert", "update", "drop", "alter"},
         "name_combos": [
-            ("db", "insert"), ("db", "update"), ("sql", "insert"),
-            ("sql", "update"), ("sql", "delete"), ("mongo", "insert"),
-            ("redis", "set"), ("execute", "insert"),
+            ("db", "insert"),
+            ("db", "update"),
+            ("sql", "insert"),
+            ("sql", "update"),
+            ("sql", "delete"),
+            ("mongo", "insert"),
+            ("redis", "set"),
+            ("execute", "insert"),
         ],
         "desc_patterns": [
             r"\binserts? .{0,20}(database|table|record|row)",
@@ -186,9 +242,9 @@ CAPABILITY_LEXICONS: dict[str, dict] = {
 
 # Server-level overbroad capability combinations. Each entry: (required tags, rationale).
 OVERBROAD_COMBOS: list[tuple[tuple[str, ...], str]] = [
-    (("fs_read", "net_egress"),       "exfil_pair"),
+    (("fs_read", "net_egress"), "exfil_pair"),
     (("secret_access", "net_egress"), "credential_exfil"),
-    (("db_query", "net_egress"),      "database_exfil"),
-    (("fs_write", "exec"),            "write_then_execute"),
-    (("db_query", "db_write"),        "full_db_compromise_on_injection"),
+    (("db_query", "net_egress"), "database_exfil"),
+    (("fs_write", "exec"), "write_then_execute"),
+    (("db_query", "db_write"), "full_db_compromise_on_injection"),
 ]

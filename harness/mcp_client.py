@@ -21,8 +21,8 @@ from mcp.client.stdio import stdio_client
 @dataclass
 class TraceFrame:
     ts: float
-    direction: str          # "out" (client→server) or "in" (server→client)
-    method: str             # JSON-RPC method, e.g. "tools/call"
+    direction: str  # "out" (client→server) or "in" (server→client)
+    method: str  # JSON-RPC method, e.g. "tools/call"
     payload: dict[str, Any]
 
 
@@ -37,6 +37,7 @@ class Trace:
         """Count frames whose JSON-serialized payload matches a regex."""
         import json
         import re
+
         rx = re.compile(pattern)
         n = 0
         for f in self.frames:
@@ -54,15 +55,16 @@ class TracedMCPClient:
     call_tool — enough for MCP-D-002 (path traversal) and MCP-D-003 (SSRF).
     """
 
-    def __init__(self, command: str, args: list[str] | None = None,
-                 env: dict[str, str] | None = None) -> None:
+    def __init__(
+        self, command: str, args: list[str] | None = None, env: dict[str, str] | None = None
+    ) -> None:
         self.params = StdioServerParameters(command=command, args=args or [], env=env)
         self.trace = Trace()
         self._session: ClientSession | None = None
         self._stdio_cm = None
         self._session_cm = None
 
-    async def __aenter__(self) -> "TracedMCPClient":
+    async def __aenter__(self) -> TracedMCPClient:
         self._stdio_cm = stdio_client(self.params)
         read, write = await self._stdio_cm.__aenter__()
         self._session_cm = ClientSession(read, write)

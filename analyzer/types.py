@@ -29,6 +29,7 @@ class DiscoveredTool:
     the JSON Schema dict (for captured tools; possibly None for
     source-discovered tools where we haven't extracted it).
     """
+
     name: str
     description: str = ""
     source_path: str = ""

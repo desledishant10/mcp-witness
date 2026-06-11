@@ -9,26 +9,28 @@ from harness.capture import capture
 
 @pytest.mark.asyncio
 async def test_capture_returns_configured_tools(mock_target):
-    target = mock_target([
-        {
-            "name": "fetch_url",
-            "description": "Makes an HTTP request to the given URL.",
-            "input_schema": {
-                "type": "object",
-                "properties": {"url": {"type": "string"}},
+    target = mock_target(
+        [
+            {
+                "name": "fetch_url",
+                "description": "Makes an HTTP request to the given URL.",
+                "input_schema": {
+                    "type": "object",
+                    "properties": {"url": {"type": "string"}},
+                },
+                "behavior": "echo",
             },
-            "behavior": "echo",
-        },
-        {
-            "name": "read_file",
-            "description": "Reads the file at the path.",
-            "input_schema": {
-                "type": "object",
-                "properties": {"path": {"type": "string"}},
+            {
+                "name": "read_file",
+                "description": "Reads the file at the path.",
+                "input_schema": {
+                    "type": "object",
+                    "properties": {"path": {"type": "string"}},
+                },
+                "behavior": "echo",
             },
-            "behavior": "echo",
-        },
-    ])
+        ]
+    )
     data = await capture(target)
     tools = data["tools"]
     assert len(tools) == 2

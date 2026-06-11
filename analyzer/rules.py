@@ -15,8 +15,8 @@ from __future__ import annotations
 import ast
 import fnmatch
 import re
+from collections.abc import Callable
 from pathlib import Path
-from typing import Callable
 
 from .discover import _SKIP_FRAGMENTS
 from .types import DiscoveredTool, Finding
@@ -29,8 +29,10 @@ _IMPERATIVE_PATTERNS = [
     re.compile(r"\byou\s+(must|should|will)\b", re.IGNORECASE),
     re.compile(r"\balways\b.{0,80}\b(call|invoke|use|run|send|fetch)\b", re.IGNORECASE),
     re.compile(r"\bbefore\s+(any|invoking|calling|using|each|every|the)\b", re.IGNORECASE),
-    re.compile(r"\b(important|warning|note|system\s*note)\s*:.{0,200}\b(call|invoke|use|send|fetch)\b",
-                re.IGNORECASE),
+    re.compile(
+        r"\b(important|warning|note|system\s*note)\s*:.{0,200}\b(call|invoke|use|send|fetch)\b",
+        re.IGNORECASE,
+    ),
     re.compile(r"\bnever\s+(mention|disclose|tell|reveal)\b", re.IGNORECASE),
     re.compile(r"\b(ignore|disregard)\s+(previous|prior|above)\b", re.IGNORECASE),
     # Calibration-driven (real mcp-server-fetch description): the "your
@@ -53,28 +55,32 @@ def check_description_injection(tool: DiscoveredTool) -> list[Finding]:
     for pat in _IMPERATIVE_PATTERNS:
         m = pat.search(desc)
         if m:
-            findings.append(Finding(
+            findings.append(
+                Finding(
+                    rule_id="MCP-S-001",
+                    severity="high",
+                    category="tool.description_injection",
+                    file=tool.source_path,
+                    line=tool.line,
+                    tool_name=tool.name,
+                    message="Tool description contains instruction-like phrasing directed at the model.",
+                    evidence=desc[max(0, m.start() - 20) : m.end() + 60].strip(),
+                )
+            )
+            break
+    if _URL_RE.search(desc):
+        findings.append(
+            Finding(
                 rule_id="MCP-S-001",
-                severity="high",
+                severity="medium",
                 category="tool.description_injection",
                 file=tool.source_path,
                 line=tool.line,
                 tool_name=tool.name,
-                message="Tool description contains instruction-like phrasing directed at the model.",
-                evidence=desc[max(0, m.start() - 20): m.end() + 60].strip(),
-            ))
-            break
-    if _URL_RE.search(desc):
-        findings.append(Finding(
-            rule_id="MCP-S-001",
-            severity="medium",
-            category="tool.description_injection",
-            file=tool.source_path,
-            line=tool.line,
-            tool_name=tool.name,
-            message="Tool description contains a URL — potential exfil instruction or covert channel.",
-            evidence=desc[:200],
-        ))
+                message="Tool description contains a URL — potential exfil instruction or covert channel.",
+                evidence=desc[:200],
+            )
+        )
     return findings
 
 
@@ -90,8 +96,7 @@ _PARAM_DIRECTIVE_PATTERNS = [
     # if no timezone provided by the user." Telling the agent what to
     # assume about user state is categorically different from describing
     # the parameter; the auditor should evaluate every such case.
-    re.compile(r"\bif\s+(no|none)\b.{0,40}\bprovided\b.{0,20}\bby\s+the\s+user\b",
-                re.IGNORECASE),
+    re.compile(r"\bif\s+(no|none)\b.{0,40}\bprovided\b.{0,20}\bby\s+the\s+user\b", re.IGNORECASE),
     re.compile(r"\b(assume|infer)\b.{0,30}\bthe\s+user\b", re.IGNORECASE),
 ]
 
@@ -114,17 +119,19 @@ def check_schema_field_injection(tool: DiscoveredTool) -> list[Finding]:
         for pat in _SCHEMA_DIRECTIVE_PATTERNS:
             m = pat.search(value)
             if m:
-                findings.append(Finding(
-                    rule_id="MCP-S-003",
-                    severity="high",
-                    category="tool.schema_field_injection",
-                    file=tool.source_path,
-                    line=tool.line,
-                    tool_name=tool.name,
-                    message=f"Schema field {path!r} contains agent-directed phrasing.",
-                    evidence=value[max(0, m.start() - 20): m.end() + 60].strip(),
-                ))
-                break    # one finding per field
+                findings.append(
+                    Finding(
+                        rule_id="MCP-S-003",
+                        severity="high",
+                        category="tool.schema_field_injection",
+                        file=tool.source_path,
+                        line=tool.line,
+                        tool_name=tool.name,
+                        message=f"Schema field {path!r} contains agent-directed phrasing.",
+                        evidence=value[max(0, m.start() - 20) : m.end() + 60].strip(),
+                    )
+                )
+                break  # one finding per field
     return findings
 
 
@@ -135,7 +142,7 @@ def _walk_description_fields(obj, prefix: str = ""):
             new_path = f"{prefix}.{k}" if prefix else k
             if k in _SCHEMA_DESC_KEYS and isinstance(v, str):
                 yield new_path, v
-            elif isinstance(v, (dict, list)):
+            elif isinstance(v, dict | list):
                 yield from _walk_description_fields(v, new_path)
     elif isinstance(obj, list):
         for i, v in enumerate(obj):
@@ -147,7 +154,14 @@ def _walk_description_fields(obj, prefix: str = ""):
 # ---------------------------------------------------------------------------
 
 _PATH_PARAM_INDICATORS = (
-    "path", "file", "filename", "filepath", "dir", "directory", "folder", "location",
+    "path",
+    "file",
+    "filename",
+    "filepath",
+    "dir",
+    "directory",
+    "folder",
+    "location",
 )
 _FS_READ_SINK_ATTRS = {"read_text", "read_bytes", "open", "iterdir", "glob", "rglob"}
 _PATH_GUARD_ATTRS = {"is_relative_to", "resolve", "realpath", "commonpath", "startswith"}
@@ -158,8 +172,7 @@ def check_path_traversal(tool: DiscoveredTool) -> list[Finding]:
     if fn is None:
         return []
     path_params = [
-        p for p in tool.parameters
-        if any(ind in p.lower() for ind in _PATH_PARAM_INDICATORS)
+        p for p in tool.parameters if any(ind in p.lower() for ind in _PATH_PARAM_INDICATORS)
     ]
     if not path_params:
         return []
@@ -178,19 +191,21 @@ def check_path_traversal(tool: DiscoveredTool) -> list[Finding]:
         if node.lineno in seen_lines:
             continue
         seen_lines.add(node.lineno)
-        findings.append(Finding(
-            rule_id="MCP-S-006",
-            severity="critical",
-            category="tool.input.path_traversal",
-            file=tool.source_path,
-            line=node.lineno,
-            tool_name=tool.name,
-            message=(
-                f"Tool parameter(s) {path_params!r} flow to a filesystem sink "
-                f"without an apparent root-containment check."
-            ),
-            evidence=_safe_unparse(node),
-        ))
+        findings.append(
+            Finding(
+                rule_id="MCP-S-006",
+                severity="critical",
+                category="tool.input.path_traversal",
+                file=tool.source_path,
+                line=node.lineno,
+                tool_name=tool.name,
+                message=(
+                    f"Tool parameter(s) {path_params!r} flow to a filesystem sink "
+                    f"without an apparent root-containment check."
+                ),
+                evidence=_safe_unparse(node),
+            )
+        )
     return findings
 
 
@@ -263,18 +278,26 @@ def _check_call_for_shell_exec(call: ast.Call, tool: DiscoveredTool) -> Finding 
 
     if module == "subprocess" and func.attr in _SUBPROCESS_FNS and _has_shell_true(call):
         return Finding(
-            rule_id="MCP-S-007", severity="critical",
+            rule_id="MCP-S-007",
+            severity="critical",
             category="tool.input.command_injection",
-            file=tool.source_path, line=call.lineno, tool_name=tool.name,
-            message=(f"subprocess.{func.attr}() called with shell=True; "
-                      "tool parameters can reach the shell unescaped."),
+            file=tool.source_path,
+            line=call.lineno,
+            tool_name=tool.name,
+            message=(
+                f"subprocess.{func.attr}() called with shell=True; "
+                "tool parameters can reach the shell unescaped."
+            ),
             evidence=_safe_unparse(call),
         )
     if module == "os" and func.attr in {"system", "popen"}:
         return Finding(
-            rule_id="MCP-S-007", severity="critical",
+            rule_id="MCP-S-007",
+            severity="critical",
             category="tool.input.command_injection",
-            file=tool.source_path, line=call.lineno, tool_name=tool.name,
+            file=tool.source_path,
+            line=call.lineno,
+            tool_name=tool.name,
             message=f"os.{func.attr}() invokes the shell with the given string.",
             evidence=_safe_unparse(call),
         )
@@ -292,10 +315,11 @@ def _has_shell_true(call: ast.Call) -> bool:
 # Helpers
 # ---------------------------------------------------------------------------
 
+
 def _safe_unparse(node) -> str:
     try:
         return ast.unparse(node)[:160]
-    except Exception:                                       # noqa: BLE001
+    except Exception:  # noqa: BLE001
         return ""
 
 
@@ -314,11 +338,21 @@ _URL_FORMATS = {"uri", "iri", "url", "uri-reference"}
 # description does not prove the validation works — but absence is a
 # strong signal it doesn't exist.
 _URL_VALIDATION_KEYWORDS = (
-    "allowlist", "allowlisted", "denylist", "blocklist",
-    "validated", "restricted to", "limited to",
-    "only http", "only https", "https only",
-    "scheme is", "rejected if",
-    "internal hosts", "metadata service", "link-local",
+    "allowlist",
+    "allowlisted",
+    "denylist",
+    "blocklist",
+    "validated",
+    "restricted to",
+    "limited to",
+    "only http",
+    "only https",
+    "https only",
+    "scheme is",
+    "rejected if",
+    "internal hosts",
+    "metadata service",
+    "link-local",
     "ssrf",
 )
 
@@ -364,21 +398,23 @@ def check_url_fetch_unrestricted(tool: DiscoveredTool) -> list[Finding]:
     if any(kw in desc_lower for kw in _URL_VALIDATION_KEYWORDS):
         return []
 
-    return [Finding(
-        rule_id="MCP-S-009",
-        severity="high",
-        category="tool.input.ssrf",
-        file=tool.source_path,
-        line=tool.line,
-        tool_name=tool.name,
-        message=(
-            f"Tool has URL parameter(s) {url_params!r} with no schema-level "
-            f"constraint and no validation keywords in the description. "
-            f"Likely no scheme allowlist or host denylist — verify against "
-            f"SSRF to link-local / loopback / cloud-metadata addresses."
-        ),
-        evidence=f"url_params={url_params}",
-    )]
+    return [
+        Finding(
+            rule_id="MCP-S-009",
+            severity="high",
+            category="tool.input.ssrf",
+            file=tool.source_path,
+            line=tool.line,
+            tool_name=tool.name,
+            message=(
+                f"Tool has URL parameter(s) {url_params!r} with no schema-level "
+                f"constraint and no validation keywords in the description. "
+                f"Likely no scheme allowlist or host denylist — verify against "
+                f"SSRF to link-local / loopback / cloud-metadata addresses."
+            ),
+            evidence=f"url_params={url_params}",
+        )
+    ]
 
 
 # ---------------------------------------------------------------------------
@@ -430,20 +466,22 @@ def check_annotation_lying(tool: DiscoveredTool) -> list[Finding]:
         return []
 
     lie = "readOnlyHint=true" if read_only else "destructiveHint=false"
-    return [Finding(
-        rule_id="MCP-S-004",
-        severity="high",
-        category="tool.annotation_lying",
-        file=tool.source_path,
-        line=tool.line,
-        tool_name=tool.name,
-        message=(
-            f"Annotation {lie} contradicts inferred behavior. "
-            f"Name/description contains write-indicating verb {m.group(0)!r}, "
-            f"which suggests the tool is not read-only / not safe."
-        ),
-        evidence=f"matched={m.group(0)!r} annotation={lie}",
-    )]
+    return [
+        Finding(
+            rule_id="MCP-S-004",
+            severity="high",
+            category="tool.annotation_lying",
+            file=tool.source_path,
+            line=tool.line,
+            tool_name=tool.name,
+            message=(
+                f"Annotation {lie} contradicts inferred behavior. "
+                f"Name/description contains write-indicating verb {m.group(0)!r}, "
+                f"which suggests the tool is not read-only / not safe."
+            ),
+            evidence=f"matched={m.group(0)!r} annotation={lie}",
+        )
+    ]
 
 
 # ---------------------------------------------------------------------------
@@ -453,10 +491,24 @@ def check_annotation_lying(tool: DiscoveredTool) -> list[Finding]:
 _QUERY_PARAM_NAMES = {"query", "sql", "filter", "where", "search_query", "stmt", "statement"}
 
 _SQL_VALIDATION_KEYWORDS = (
-    "parameterized", "parameterised", "prepared statement", "prepared-statement",
-    "bind parameters", "bound parameters", "escape", "escaped",
-    "read-only", "select only", "select-only", "no ddl", "no dml",
-    "sanitized", "sanitised", "validated", "allowlist", "sqlite_master",
+    "parameterized",
+    "parameterised",
+    "prepared statement",
+    "prepared-statement",
+    "bind parameters",
+    "bound parameters",
+    "escape",
+    "escaped",
+    "read-only",
+    "select only",
+    "select-only",
+    "no ddl",
+    "no dml",
+    "sanitized",
+    "sanitised",
+    "validated",
+    "allowlist",
+    "sqlite_master",
 )
 
 
@@ -501,27 +553,30 @@ def check_sql_injection_unrestricted(tool: DiscoveredTool) -> list[Finding]:
     if any(kw in desc_lower for kw in _SQL_VALIDATION_KEYWORDS):
         return []
 
-    return [Finding(
-        rule_id="MCP-S-008",
-        severity="high",
-        category="tool.input.sql_injection",
-        file=tool.source_path,
-        line=tool.line,
-        tool_name=tool.name,
-        message=(
-            f"Tool accepts SQL-shaped input via {query_params!r} with no "
-            f"schema-level constraint and no mention of parameterized "
-            f"queries / sanitization / read-only mode in the description. "
-            f"Verify the implementation uses parameterized queries; if not, "
-            f"vulnerable to SQL injection via prompt-injected tool arguments."
-        ),
-        evidence=f"query_params={query_params}",
-    )]
+    return [
+        Finding(
+            rule_id="MCP-S-008",
+            severity="high",
+            category="tool.input.sql_injection",
+            file=tool.source_path,
+            line=tool.line,
+            tool_name=tool.name,
+            message=(
+                f"Tool accepts SQL-shaped input via {query_params!r} with no "
+                f"schema-level constraint and no mention of parameterized "
+                f"queries / sanitization / read-only mode in the description. "
+                f"Verify the implementation uses parameterized queries; if not, "
+                f"vulnerable to SQL injection via prompt-injected tool arguments."
+            ),
+            evidence=f"query_params={query_params}",
+        )
+    ]
 
 
 # ---------------------------------------------------------------------------
 # MCP-S-002 — Cross-tool reference in tool description
 # ---------------------------------------------------------------------------
+
 
 def check_cross_tool_references(tools: list[DiscoveredTool]) -> list[Finding]:
     """Tool description references another tool by name.
@@ -550,26 +605,29 @@ def check_cross_tool_references(tools: list[DiscoveredTool]) -> list[Finding]:
             if m is None:
                 continue
             imperative = any(p.search(desc) for p in _IMPERATIVE_PATTERNS)
-            findings.append(Finding(
-                rule_id="MCP-S-002",
-                severity="high" if imperative else "medium",
-                category="tool.shadowing",
-                file=tool.source_path,
-                line=tool.line,
-                tool_name=tool.name,
-                message=(
-                    f"Description references another tool by name: {other!r}"
-                    + (" (in imperative context)" if imperative else "")
-                ),
-                evidence=desc[max(0, m.start() - 30): m.end() + 50].strip(),
-            ))
-            break    # one finding per tool
+            findings.append(
+                Finding(
+                    rule_id="MCP-S-002",
+                    severity="high" if imperative else "medium",
+                    category="tool.shadowing",
+                    file=tool.source_path,
+                    line=tool.line,
+                    tool_name=tool.name,
+                    message=(
+                        f"Description references another tool by name: {other!r}"
+                        + (" (in imperative context)" if imperative else "")
+                    ),
+                    evidence=desc[max(0, m.start() - 30) : m.end() + 50].strip(),
+                )
+            )
+            break  # one finding per tool
     return findings
 
 
 # ---------------------------------------------------------------------------
 # MCP-S-005 — Overbroad capability surface (server-level)
 # ---------------------------------------------------------------------------
+
 
 def check_overbroad_capability_surface(tools: list[DiscoveredTool]) -> list[Finding]:
     """Server exposes a capability combination that enables a known attack
@@ -579,35 +637,39 @@ def check_overbroad_capability_surface(tools: list[DiscoveredTool]) -> list[Find
     formal analyzer finding. The combination set is versioned in
     classifier/lexicons.py (`OVERBROAD_COMBOS`).
     """
-    from classifier import classify_server      # local to avoid import cost on every call
+    from classifier import classify_server  # local to avoid import cost on every call
 
-    server_class = classify_server([
-        {
-            "name": t.name,
-            "description": t.description,
-            "inputSchema": t.input_schema or {},
-        }
-        for t in tools
-    ])
+    server_class = classify_server(
+        [
+            {
+                "name": t.name,
+                "description": t.description,
+                "inputSchema": t.input_schema or {},
+            }
+            for t in tools
+        ]
+    )
 
     findings: list[Finding] = []
     for combo in server_class.overbroad_combinations:
         first_name = combo.tools[0] if combo.tools else None
         first_tool = next((t for t in tools if t.name == first_name), None)
-        findings.append(Finding(
-            rule_id="MCP-S-005",
-            severity="medium",
-            category="tool.overbroad_capability",
-            file=first_tool.source_path if first_tool else "<server>",
-            line=first_tool.line if first_tool else 0,
-            tool_name=f"<server: {'+'.join(combo.tags)}>",
-            message=(
-                f"Server exposes overbroad capability combination "
-                f"{' + '.join(combo.tags)} ({combo.rationale}). "
-                f"Tools involved: {', '.join(combo.tools)}"
-            ),
-            evidence=f"rationale={combo.rationale}",
-        ))
+        findings.append(
+            Finding(
+                rule_id="MCP-S-005",
+                severity="medium",
+                category="tool.overbroad_capability",
+                file=first_tool.source_path if first_tool else "<server>",
+                line=first_tool.line if first_tool else 0,
+                tool_name=f"<server: {'+'.join(combo.tags)}>",
+                message=(
+                    f"Server exposes overbroad capability combination "
+                    f"{' + '.join(combo.tags)} ({combo.rationale}). "
+                    f"Tools involved: {', '.join(combo.tools)}"
+                ),
+                evidence=f"rationale={combo.rationale}",
+            )
+        )
     return findings
 
 
@@ -619,7 +681,14 @@ def check_overbroad_capability_surface(tools: list[DiscoveredTool]) -> list[Find
 # these AND whose arguments reference a sensitive-shaped name.
 _LOG_BARE_FUNCS = {"print"}
 _LOG_METHOD_NAMES = {
-    "info", "debug", "warning", "warn", "error", "critical", "exception", "log",
+    "info",
+    "debug",
+    "warning",
+    "warn",
+    "error",
+    "critical",
+    "exception",
+    "log",
     # sys.stderr.write / sys.stdout.write — caught via a separate path below.
 }
 _STD_STREAMS = {"stderr", "stdout"}
@@ -687,16 +756,21 @@ def check_sensitive_logging(tool: DiscoveredTool) -> list[Finding]:
             continue
 
         seen_lines.add(node.lineno)
-        findings.append(Finding(
-            rule_id="MCP-S-011", severity="medium",
-            category="tool.sensitive_logging",
-            file=tool.source_path, line=node.lineno, tool_name=tool.name,
-            message=(
-                f"Tool logs potentially sensitive data ({', '.join(sensitive_signals)}). "
-                f"MCP hosts typically capture stderr and may surface or persist it."
-            ),
-            evidence=_safe_unparse(node),
-        ))
+        findings.append(
+            Finding(
+                rule_id="MCP-S-011",
+                severity="medium",
+                category="tool.sensitive_logging",
+                file=tool.source_path,
+                line=node.lineno,
+                tool_name=tool.name,
+                message=(
+                    f"Tool logs potentially sensitive data ({', '.join(sensitive_signals)}). "
+                    f"MCP hosts typically capture stderr and may surface or persist it."
+                ),
+                evidence=_safe_unparse(node),
+            )
+        )
     return findings
 
 
@@ -769,7 +843,7 @@ def _collect_debug_gated_lines(fn) -> set[int]:
             continue
         try:
             test_src = ast.unparse(node.test)
-        except Exception:                                       # noqa: BLE001
+        except Exception:  # noqa: BLE001
             continue
         if not _DEBUG_GATE_RE.search(test_src):
             continue
@@ -795,34 +869,67 @@ def _collect_debug_gated_lines(fn) -> set[int]:
 # times); anthropic / stripe / slack must appear first so their tokens
 # aren't swallowed by it.
 _SECRET_PATTERNS: list[tuple[str, re.Pattern[str]]] = [
-    ("aws_access_key",     re.compile(r"\bAKIA[0-9A-Z]{16}\b")),
+    ("aws_access_key", re.compile(r"\bAKIA[0-9A-Z]{16}\b")),
     ("github_pat_classic", re.compile(r"\bghp_[A-Za-z0-9]{36}\b")),
-    ("github_pat_fine",    re.compile(r"\bgithub_pat_[A-Za-z0-9_]{82}\b")),
+    ("github_pat_fine", re.compile(r"\bgithub_pat_[A-Za-z0-9_]{82}\b")),
     ("github_oauth_token", re.compile(r"\bgh[ous]_[A-Za-z0-9]{36}\b")),
-    ("anthropic_api_key",  re.compile(r"\bsk-ant-(?:api|admin)\d*-[A-Za-z0-9_-]{20,}\b")),
+    ("anthropic_api_key", re.compile(r"\bsk-ant-(?:api|admin)\d*-[A-Za-z0-9_-]{20,}\b")),
     ("stripe_live_secret", re.compile(r"\b(?:sk|rk)_live_[A-Za-z0-9]{24,}\b")),
-    ("slack_bot_token",    re.compile(r"\bxox[bpaer]-[A-Za-z0-9-]{20,}\b")),
-    ("openai_api_key",     re.compile(r"\bsk-(?:proj-)?[A-Za-z0-9_-]{20,}\b")),
-    ("google_api_key",     re.compile(r"\bAIza[0-9A-Za-z_-]{35}\b")),
-    ("private_key_pem",    re.compile(r"-----BEGIN (?:RSA |EC |DSA |OPENSSH |PGP |ENCRYPTED )?PRIVATE KEY-----")),
-    ("jwt",                re.compile(r"\beyJ[A-Za-z0-9_-]{8,}\.eyJ[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\b")),
+    ("slack_bot_token", re.compile(r"\bxox[bpaer]-[A-Za-z0-9-]{20,}\b")),
+    ("openai_api_key", re.compile(r"\bsk-(?:proj-)?[A-Za-z0-9_-]{20,}\b")),
+    ("google_api_key", re.compile(r"\bAIza[0-9A-Za-z_-]{35}\b")),
+    (
+        "private_key_pem",
+        re.compile(r"-----BEGIN (?:RSA |EC |DSA |OPENSSH |PGP |ENCRYPTED )?PRIVATE KEY-----"),
+    ),
+    ("jwt", re.compile(r"\beyJ[A-Za-z0-9_-]{8,}\.eyJ[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\b")),
 ]
 
 # Extensions worth scanning for secrets. Skip binary formats, images,
 # lockfiles, vendored bundles. The list intentionally errs on the side of
 # scanning more text formats — false positives are cheap, false negatives
 # are how secrets leak.
-_SECRET_SCAN_EXTS = frozenset({
-    ".py", ".pyi", ".js", ".jsx", ".ts", ".tsx", ".mjs", ".cjs",
-    ".yaml", ".yml", ".json", ".toml", ".txt", ".md", ".cfg", ".ini",
-    ".env", ".sh", ".bash", ".zsh", ".fish", ".rs", ".go", ".rb",
-    ".java", ".kt", ".scala", ".php", ".c", ".h", ".cpp", ".cs",
-})
+_SECRET_SCAN_EXTS = frozenset(
+    {
+        ".py",
+        ".pyi",
+        ".js",
+        ".jsx",
+        ".ts",
+        ".tsx",
+        ".mjs",
+        ".cjs",
+        ".yaml",
+        ".yml",
+        ".json",
+        ".toml",
+        ".txt",
+        ".md",
+        ".cfg",
+        ".ini",
+        ".env",
+        ".sh",
+        ".bash",
+        ".zsh",
+        ".fish",
+        ".rs",
+        ".go",
+        ".rb",
+        ".java",
+        ".kt",
+        ".scala",
+        ".php",
+        ".c",
+        ".h",
+        ".cpp",
+        ".cs",
+    }
+)
 
 # Cap individual file scan size — lockfiles, vendored bundles, generated
 # code aren't where committed secrets live, and reading them slows scans.
-_SECRET_LARGEST_FILE = 1024 * 1024        # 1 MiB
-_SECRET_LONGEST_LINE = 1000               # skip minified content
+_SECRET_LARGEST_FILE = 1024 * 1024  # 1 MiB
+_SECRET_LONGEST_LINE = 1000  # skip minified content
 
 # `.env` files commonly hold credentials. Flag presence in source tree.
 # Sample/example/template variants are the documented-safe convention.
@@ -859,17 +966,22 @@ def check_hardcoded_secrets(root: Path) -> list[Finding]:
         # .env-style files: flag presence (don't scan content — would
         # double-report every secret inside).
         if _DOTENV_RE.match(f.name) and not f.name.endswith(_DOTENV_SAFE_SUFFIXES):
-            findings.append(Finding(
-                rule_id="MCP-S-010", severity="high",
-                category="secret.dotenv_committed",
-                file=rel, line=0, tool_name="<repo>",
-                message=(
-                    f"Environment file {f.name!r} present in source tree. "
-                    f"`.env*` files commonly hold credentials — confirm "
-                    f".gitignore covers it and it was never committed."
-                ),
-                evidence="",
-            ))
+            findings.append(
+                Finding(
+                    rule_id="MCP-S-010",
+                    severity="high",
+                    category="secret.dotenv_committed",
+                    file=rel,
+                    line=0,
+                    tool_name="<repo>",
+                    message=(
+                        f"Environment file {f.name!r} present in source tree. "
+                        f"`.env*` files commonly hold credentials — confirm "
+                        f".gitignore covers it and it was never committed."
+                    ),
+                    evidence="",
+                )
+            )
             continue
 
         if f.suffix.lower() not in _SECRET_SCAN_EXTS:
@@ -889,14 +1001,19 @@ def check_hardcoded_secrets(root: Path) -> list[Finding]:
                 if m is None:
                     continue
                 tok = m.group(0)
-                findings.append(Finding(
-                    rule_id="MCP-S-010", severity="high",
-                    category=f"secret.{kind}",
-                    file=rel, line=lineno, tool_name="<repo>",
-                    message=f"Possible {kind.replace('_', ' ')} hardcoded in source.",
-                    evidence=_redact_secret(tok),
-                ))
-                break    # one finding per line — first match wins
+                findings.append(
+                    Finding(
+                        rule_id="MCP-S-010",
+                        severity="high",
+                        category=f"secret.{kind}",
+                        file=rel,
+                        line=lineno,
+                        tool_name="<repo>",
+                        message=f"Possible {kind.replace('_', ' ')} hardcoded in source.",
+                        evidence=_redact_secret(tok),
+                    )
+                )
+                break  # one finding per line — first match wins
 
     return findings
 
@@ -943,7 +1060,8 @@ def _load_secret_allowlist(root: Path) -> list[str]:
     if not p.exists():
         return []
     return [
-        ln.strip() for ln in p.read_text().splitlines()
+        ln.strip()
+        for ln in p.read_text().splitlines()
         if ln.strip() and not ln.lstrip().startswith("#")
     ]
 
@@ -968,7 +1086,13 @@ def _redact_secret(tok: str) -> str:
 # is also rebindable from the browser's perspective: an attacker-controlled
 # domain that resolves to 127.0.0.1 after a TTL flip can issue requests.
 _REBINDABLE_HOSTS = {
-    "0.0.0.0", "127.0.0.1", "localhost", "::", "::1", "[::]", "[::1]",
+    "0.0.0.0",
+    "127.0.0.1",
+    "localhost",
+    "::",
+    "::1",
+    "[::]",
+    "[::1]",
 }
 
 _HOST_KW_NAMES = ("host", "bind", "address", "hostname")
@@ -1023,35 +1147,45 @@ def check_transport_origin_validation(root: Path) -> list[Finding]:
 
         if binds and not validates_origin:
             for bind_node, host_value in binds:
-                findings.append(Finding(
-                    rule_id="MCP-S-014", severity="high",
-                    category="transport.origin_unchecked",
-                    file=rel, line=bind_node.lineno, tool_name="<transport>",
-                    message=(
-                        f"HTTP transport binds to {host_value!r} but the source "
-                        f"file contains no reference to 'Origin' header "
-                        f"validation. Local MCP servers bound to loopback / "
-                        f"0.0.0.0 are exploitable via DNS rebinding when "
-                        f"Origin is not checked."
-                    ),
-                    evidence=_safe_unparse(bind_node)[:160],
-                ))
+                findings.append(
+                    Finding(
+                        rule_id="MCP-S-014",
+                        severity="high",
+                        category="transport.origin_unchecked",
+                        file=rel,
+                        line=bind_node.lineno,
+                        tool_name="<transport>",
+                        message=(
+                            f"HTTP transport binds to {host_value!r} but the source "
+                            f"file contains no reference to 'Origin' header "
+                            f"validation. Local MCP servers bound to loopback / "
+                            f"0.0.0.0 are exploitable via DNS rebinding when "
+                            f"Origin is not checked."
+                        ),
+                        evidence=_safe_unparse(bind_node)[:160],
+                    )
+                )
 
         # Wildcard CORS + credentials is wrong independent of bind host.
         for cors_node in _find_cors_wildcard_with_credentials(tree):
-            findings.append(Finding(
-                rule_id="MCP-S-014", severity="high",
-                category="transport.cors_wildcard_credentials",
-                file=rel, line=cors_node.lineno, tool_name="<transport>",
-                message=(
-                    "CORS middleware combines allow_origins=['*'] with "
-                    "allow_credentials=True. Browsers reject this "
-                    "combination at runtime, but the intent suggests "
-                    "credentialed cross-origin access — either restrict "
-                    "origins to an explicit allowlist or remove credentials."
-                ),
-                evidence=_safe_unparse(cors_node)[:160],
-            ))
+            findings.append(
+                Finding(
+                    rule_id="MCP-S-014",
+                    severity="high",
+                    category="transport.cors_wildcard_credentials",
+                    file=rel,
+                    line=cors_node.lineno,
+                    tool_name="<transport>",
+                    message=(
+                        "CORS middleware combines allow_origins=['*'] with "
+                        "allow_credentials=True. Browsers reject this "
+                        "combination at runtime, but the intent suggests "
+                        "credentialed cross-origin access — either restrict "
+                        "origins to an explicit allowlist or remove credentials."
+                    ),
+                    evidence=_safe_unparse(cors_node)[:160],
+                )
+            )
     return findings
 
 
@@ -1103,14 +1237,14 @@ def _collect_string_bindings(tree: ast.AST) -> dict[str, str]:
                     if env_default is not None:
                         bindings[node.targets[0].id] = env_default
         # `def f(host="0.0.0.0", ...)` — positional defaults + kw-only defaults.
-        elif isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+        elif isinstance(node, ast.FunctionDef | ast.AsyncFunctionDef):
             args = node.args
             n_def = len(args.defaults)
             if n_def > 0:
-                for arg, dflt in zip(args.args[-n_def:], args.defaults):
+                for arg, dflt in zip(args.args[-n_def:], args.defaults, strict=False):
                     if isinstance(dflt, ast.Constant) and isinstance(dflt.value, str):
                         bindings[arg.arg] = dflt.value
-            for arg, dflt in zip(args.kwonlyargs, args.kw_defaults):
+            for arg, dflt in zip(args.kwonlyargs, args.kw_defaults, strict=False):
                 if dflt is None:
                     continue
                 if isinstance(dflt, ast.Constant) and isinstance(dflt.value, str):
@@ -1144,8 +1278,7 @@ def _extract_env_default(call: ast.Call) -> str | None:
         return None
 
     # os.getenv("X", "default")
-    if (isinstance(f.value, ast.Name) and f.value.id == "os"
-            and f.attr == "getenv"):
+    if isinstance(f.value, ast.Name) and f.value.id == "os" and f.attr == "getenv":
         # Positional default (2nd arg)
         if len(call.args) >= 2 and isinstance(call.args[1], ast.Constant):
             if isinstance(call.args[1].value, str):
@@ -1158,9 +1291,13 @@ def _extract_env_default(call: ast.Call) -> str | None:
         return None
 
     # os.environ.get("X", "default")
-    if (f.attr == "get"
-            and isinstance(f.value, ast.Attribute) and f.value.attr == "environ"
-            and isinstance(f.value.value, ast.Name) and f.value.value.id == "os"):
+    if (
+        f.attr == "get"
+        and isinstance(f.value, ast.Attribute)
+        and f.value.attr == "environ"
+        and isinstance(f.value.value, ast.Name)
+        and f.value.value.id == "os"
+    ):
         if len(call.args) >= 2 and isinstance(call.args[1], ast.Constant):
             if isinstance(call.args[1].value, str):
                 return call.args[1].value
@@ -1325,9 +1462,12 @@ def check_roots_declared_but_unused(root: Path) -> list[Finding]:
         return []
     return [
         Finding(
-            rule_id="MCP-S-012", severity="medium",
+            rule_id="MCP-S-012",
+            severity="medium",
             category="capability.roots_declared_unused",
-            file=rel, line=lineno, tool_name="<server>",
+            file=rel,
+            line=lineno,
+            tool_name="<server>",
             message=(
                 "Server references the `roots` capability but the source "
                 "tree contains no call to `list_roots()`. Either consult "
@@ -1358,14 +1498,20 @@ def _callable_simple_name(fn) -> str | None:
 # MCP Python SDK (`PromptMessage`) plus the role-typed helpers some
 # servers wrap around it.
 _PROMPT_MSG_CTOR_NAMES = {
-    "PromptMessage", "Message",
-    "SystemMessage", "UserMessage", "AssistantMessage",
+    "PromptMessage",
+    "Message",
+    "SystemMessage",
+    "UserMessage",
+    "AssistantMessage",
 }
 
 # Content-wrapping constructors. We unwrap one level of these so an
 # interpolated f-string inside `TextContent(text=...)` is still seen.
 _CONTENT_WRAPPER_CTOR_NAMES = {
-    "TextContent", "ImageContent", "AudioContent", "EmbeddedResource",
+    "TextContent",
+    "ImageContent",
+    "AudioContent",
+    "EmbeddedResource",
 }
 
 # Roles that warrant a finding. `user` is intentionally excluded: every
@@ -1409,7 +1555,7 @@ def check_prompt_injection(root: Path) -> list[Finding]:
 
         rel = _relpath(f, root)
         for node in ast.walk(tree):
-            if not isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+            if not isinstance(node, ast.FunctionDef | ast.AsyncFunctionDef):
                 continue
             if not any(_is_prompt_decorator(d) for d in node.decorator_list):
                 continue
@@ -1467,18 +1613,23 @@ def _scan_prompt_handler(fn: ast.FunctionDef | ast.AsyncFunctionDef, rel: str) -
 
         severity = "high" if role in _FLAGGED_PROMPT_ROLES else "medium"
         role_desc = role if role else "<dynamic-or-unknown>"
-        findings.append(Finding(
-            rule_id="MCP-S-013", severity=severity,
-            category="prompt.template_injection",
-            file=rel, line=report_line, tool_name=fn.name,
-            message=(
-                f"Prompt {role_desc!r}-role message interpolates parameter(s) "
-                f"{interpolated!r} without sanitization. User-controlled text "
-                f"reaches a message the model treats as authority — verify "
-                f"that input is escaped or restricted before this call."
-            ),
-            evidence=_safe_unparse(node)[:160],
-        ))
+        findings.append(
+            Finding(
+                rule_id="MCP-S-013",
+                severity=severity,
+                category="prompt.template_injection",
+                file=rel,
+                line=report_line,
+                tool_name=fn.name,
+                message=(
+                    f"Prompt {role_desc!r}-role message interpolates parameter(s) "
+                    f"{interpolated!r} without sanitization. User-controlled text "
+                    f"reaches a message the model treats as authority — verify "
+                    f"that input is escaped or restricted before this call."
+                ),
+                evidence=_safe_unparse(node)[:160],
+            )
+        )
     return findings
 
 
@@ -1490,7 +1641,7 @@ def _looks_like_message_dict(d: ast.Dict) -> bool:
 def _extract_dict_message(d: ast.Dict) -> tuple[str | None, ast.expr | None]:
     role: str | None = None
     content: ast.expr | None = None
-    for k, v in zip(d.keys, d.values):
+    for k, v in zip(d.keys, d.values, strict=False):
         if not isinstance(k, ast.Constant):
             continue
         if k.value == "role":

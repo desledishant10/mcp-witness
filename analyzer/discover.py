@@ -20,8 +20,16 @@ from .types import DiscoveredTool
 
 # Directory fragments to skip when walking a tree (always present in dev
 # environments; would dilute findings or pull in third-party code).
-_SKIP_FRAGMENTS = ("/.venv/", "/venv/", "/site-packages/", "/.git/",
-                    "/__pycache__/", "/node_modules/", "/.tox/", "/build/")
+_SKIP_FRAGMENTS = (
+    "/.venv/",
+    "/venv/",
+    "/site-packages/",
+    "/.git/",
+    "/__pycache__/",
+    "/node_modules/",
+    "/.tox/",
+    "/build/",
+)
 
 
 def discover_tools_in_source(source: str, path: str) -> list[DiscoveredTool]:
@@ -31,16 +39,18 @@ def discover_tools_in_source(source: str, path: str) -> list[DiscoveredTool]:
         return []
     tools: list[DiscoveredTool] = []
     for node in ast.walk(tree):
-        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+        if isinstance(node, ast.FunctionDef | ast.AsyncFunctionDef):
             if any(_is_tool_decorator(d) for d in node.decorator_list):
-                tools.append(DiscoveredTool(
-                    name=node.name,
-                    description=ast.get_docstring(node) or "",
-                    source_path=path,
-                    line=node.lineno,
-                    function_node=node,
-                    parameters=[a.arg for a in node.args.args if a.arg != "self"],
-                ))
+                tools.append(
+                    DiscoveredTool(
+                        name=node.name,
+                        description=ast.get_docstring(node) or "",
+                        source_path=path,
+                        line=node.lineno,
+                        function_node=node,
+                        parameters=[a.arg for a in node.args.args if a.arg != "self"],
+                    )
+                )
     return tools
 
 
@@ -65,15 +75,17 @@ def discover_tools_from_captured(captured: dict | list) -> list[DiscoveredTool]:
     for t in captured.get("tools", []):
         schema = t.get("inputSchema") or t.get("input_schema") or {}
         params = list((schema.get("properties") or {}).keys())
-        tools.append(DiscoveredTool(
-            name=t.get("name", ""),
-            description=t.get("description") or "",
-            source_path="<captured>",
-            line=0,
-            function_node=None,
-            parameters=params,
-            input_schema=schema or None,
-        ))
+        tools.append(
+            DiscoveredTool(
+                name=t.get("name", ""),
+                description=t.get("description") or "",
+                source_path="<captured>",
+                line=0,
+                function_node=None,
+                parameters=params,
+                input_schema=schema or None,
+            )
+        )
     return tools
 
 

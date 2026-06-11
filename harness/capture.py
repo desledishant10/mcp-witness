@@ -35,12 +35,16 @@ async def capture(target: Target) -> dict:
 
 def main() -> int:
     p = argparse.ArgumentParser(prog="mcpsentry-capture")
-    p.add_argument("--server-cmd", required=True,
-                   help="Command to launch the MCP server (stdio transport).")
-    p.add_argument("--server-arg", action="append", default=[],
-                   help="Argument to pass to the server command (repeatable).")
-    p.add_argument("--output", "-o", type=Path,
-                   help="Output file. Default: stdout.")
+    p.add_argument(
+        "--server-cmd", required=True, help="Command to launch the MCP server (stdio transport)."
+    )
+    p.add_argument(
+        "--server-arg",
+        action="append",
+        default=[],
+        help="Argument to pass to the server command (repeatable).",
+    )
+    p.add_argument("--output", "-o", type=Path, help="Output file. Default: stdout.")
     args = p.parse_args()
 
     target = Target(command=args.server_cmd, args=args.server_arg)

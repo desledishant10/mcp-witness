@@ -43,17 +43,18 @@ def classify_parameter(name: str, defn: dict[str, Any]) -> ParameterRole:
 
     for role, hints in PARAM_ROLE_DICT.items():
         if name_l in hints:
-            return ParameterRole(role=role, confidence="high",
-                                  evidence=[f"param_name:{name_l}"])
+            return ParameterRole(role=role, confidence="high", evidence=[f"param_name:{name_l}"])
 
     for role, hints in PARAM_ROLE_DICT.items():
         if any(h in name_l for h in hints):
-            return ParameterRole(role=role, confidence="medium",
-                                  evidence=[f"param_name_partial:{name_l}"])
+            return ParameterRole(
+                role=role, confidence="medium", evidence=[f"param_name_partial:{name_l}"]
+            )
 
     fallback = "text" if schema_type == "string" else "id"
-    return ParameterRole(role=fallback, confidence="low",
-                          evidence=[f"fallback:type={schema_type or 'unknown'}"])
+    return ParameterRole(
+        role=fallback, confidence="low", evidence=[f"fallback:type={schema_type or 'unknown'}"]
+    )
 
 
 def classify_tool(tool: dict[str, Any]) -> ToolClassification:
@@ -99,11 +100,13 @@ def classify_tool(tool: dict[str, Any]) -> ToolClassification:
                     break
 
         if evidence:
-            capabilities.append(CapabilityFinding(
-                tag=tag,
-                confidence=_score(signal_kinds),
-                evidence=evidence,
-            ))
+            capabilities.append(
+                CapabilityFinding(
+                    tag=tag,
+                    confidence=_score(signal_kinds),
+                    evidence=evidence,
+                )
+            )
 
     return ToolClassification(
         tool_name=name,
@@ -139,11 +142,13 @@ def classify_server(tools: list[dict[str, Any]]) -> ServerClassification:
     for required_tags, rationale in OVERBROAD_COMBOS:
         if all(t in cap_to_tools for t in required_tags):
             involved = sorted({tool for t in required_tags for tool in cap_to_tools[t]})
-            overbroad.append(OverbroadCombination(
-                tags=list(required_tags),
-                tools=involved,
-                rationale=rationale,
-            ))
+            overbroad.append(
+                OverbroadCombination(
+                    tags=list(required_tags),
+                    tools=involved,
+                    rationale=rationale,
+                )
+            )
 
     return ServerClassification(
         tools=classifications,

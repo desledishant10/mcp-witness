@@ -25,11 +25,36 @@ Disclosures = "https://github.com/desledishant10/mcpsentry/tree/main/disclosures
 dev = [
     "pytest>=8",
     "pytest-asyncio>=0.23",
+    "pytest-cov>=5",
     "ruff>=0.4",
 ]
 anthropic = [
     "anthropic>=0.40",
 ]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP"]
+ignore = [
+    "E501",   # line too long — handled by formatter, allow case-by-case overrides
+    "B008",   # function call in default argument — common pattern in CLI scripts (argparse, etc.)
+]
+
+[tool.ruff.lint.per-file-ignores]
+# Test files use rule-grouped imports to keep each rule's tests
+# self-contained. E402 (module-level import not at top of file) is
+# allowed here intentionally.
+"**/tests/**" = ["E402"]
+# Fixture files are intentionally small + may import for documentation
+# value rather than execution. Allow unused imports.
+"examples/**" = ["F401"]
+"**/fixtures/**" = ["F401"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "strict"
 
 [project.scripts]
 mcpsentry-test = "harness.cli:main"

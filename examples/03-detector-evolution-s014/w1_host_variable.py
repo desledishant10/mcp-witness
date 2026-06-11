@@ -8,6 +8,7 @@ via `_collect_string_bindings` and threads it through `_extract_host_value`.
 
 Expected: MCP-S-014 fires on this file.
 """
+
 from typing import Optional
 
 

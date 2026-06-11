@@ -2,9 +2,8 @@
 
 from __future__ import annotations
 
-from pathlib import Path
-
 import json
+from pathlib import Path
 
 from .discover import discover_tools_from_captured, discover_tools_in_path
 from .rules import REPO_RULES, RULES, SERVER_RULES

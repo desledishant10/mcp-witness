@@ -35,9 +35,7 @@ def _resolve(m: re.Match[str], ctx: dict[str, Any], defer_tags: bool) -> str:
     if name == "unicode_tags":
         if defer_tags:
             return m.group(0)
-        return "".join(
-            chr(0xE0000 + ord(c)) for c in (arg or "") if 0x20 <= ord(c) <= 0x7E
-        )
+        return "".join(chr(0xE0000 + ord(c)) for c in (arg or "") if 0x20 <= ord(c) <= 0x7E)
     if name == "run_id":
         return str(ctx["run_id"])
     if name == "tmp":

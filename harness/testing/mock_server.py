@@ -61,7 +61,7 @@ async def _execute_behavior(behavior: str, args: dict[str, Any]) -> str:
             async with session.get(url) as resp:
                 return await resp.text()
     if behavior.startswith("fixed:"):
-        return behavior[len("fixed:"):]
+        return behavior[len("fixed:") :]
     raise ValueError(f"unknown mock behavior: {behavior!r}")
 
 
@@ -91,7 +91,7 @@ async def main() -> None:
         behavior = tool_cfg.get("behavior", "echo")
         try:
             text = await _execute_behavior(behavior, arguments or {})
-        except Exception as e:                          # noqa: BLE001
+        except Exception as e:  # noqa: BLE001
             text = f"behavior error: {type(e).__name__}: {e}"
         return [types.TextContent(type="text", text=text)]
 
