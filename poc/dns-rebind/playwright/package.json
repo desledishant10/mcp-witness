@@ -1,0 +1,12 @@
+{
+  "name": "dns-rebind-poc-playwright",
+  "version": "0.1.0",
+  "description": "Browser-driven DNS rebind PoC for mcp-streamablehttp-proxy v0.2.0",
+  "private": true,
+  "scripts": {
+    "test": "playwright test --reporter=list"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.55.0"
+  }
+}

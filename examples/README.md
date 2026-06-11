@@ -7,6 +7,7 @@ Worked examples showing mcp-witness in real use. Each is self-contained — the 
 | [01](01-audit-mcp-server-fetch/) | Audit `mcp-server-fetch` from a captured `tools/list` | The end-to-end of the SSRF discovery (#4143). Two analyzer findings surfacing from one captured JSON, with commentary on what each means and how they composed into the disclosed vulnerability. |
 | [02](02-ssrf-class-survey/) | Surface the SSRF class across two packages | How a single static rule (MCP-S-009) found *both* disclosed SSRF servers from captured `tools/list` files alone — no source-code inspection required. The "class issue, not single package" framing in code. |
 | [03](03-detector-evolution-s014/) | The W1–W4 patches for MCP-S-014 | How four real-world DNS-rebind targets each motivated one of the four S-014 detector patches. Side-by-side: v0.1 detector misses → v0.3 detector catches. |
+| [04](04-dns-rebind-poc/) | DNS rebind end-to-end | Runnable PoC harness reproducing the inbound DNS-rebind attack against `mcp-streamablehttp-proxy` v0.2.0. Two modes: a 5-second Python-only probe and a full Docker-compose containerized attack with browser-driven rebind. Harness lives at [`poc/dns-rebind/`](../poc/dns-rebind/); this directory is the pointer + walkthrough. |
 
 Each example is meant to be readable in 5 minutes, runnable in 30 seconds, and re-usable as a template for auditing your own servers.
 

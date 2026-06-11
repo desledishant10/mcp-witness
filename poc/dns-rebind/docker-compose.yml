@@ -1,0 +1,76 @@
+services:
+  # Custom DNS resolver. First lookup of `evil.example` returns the
+  # attacker container's IP; subsequent lookups (after a 1-second TTL)
+  # return the victim's IP. This is the DNS rebind primitive.
+  dns:
+    build: ./dns
+    networks:
+      lab:
+        ipv4_address: 172.28.0.10
+    healthcheck:
+      test: ["CMD", "python3", "-c", "import socket; socket.gethostbyname('evil.example')"]
+      interval: 2s
+      timeout: 1s
+      retries: 5
+
+  # The attacker's web server. Hosts a single page with rebind.js that
+  # makes the attack work. Both the attacker page and the victim's MCP
+  # endpoint live on port 3000 — required because browser Same-Origin
+  # Policy gates on scheme+host+port, and we need them to look identical
+  # so the post-rebind fetch is considered same-origin.
+  attacker:
+    build: ./attacker
+    networks:
+      lab:
+        ipv4_address: 172.28.0.20
+    expose:
+      - "3000"
+    depends_on:
+      dns:
+        condition: service_healthy
+
+  # The vulnerable target. mcp-streamablehttp-proxy v0.2.0 wrapping the
+  # mcp-server-time stdio server. Binds 0.0.0.0:3000 with no Origin/Host
+  # validation — exactly the configuration documented in the disclosure.
+  victim:
+    build: ./victim
+    networks:
+      lab:
+        ipv4_address: 172.28.0.30
+    expose:
+      - "3000"
+    depends_on:
+      dns:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf -X POST -H 'Content-Type: application/json' -H 'Accept: application/json, text/event-stream' -d '{\"jsonrpc\":\"2.0\",\"id\":0,\"method\":\"initialize\",\"params\":{\"protocolVersion\":\"2025-06-18\",\"capabilities\":{},\"clientInfo\":{\"name\":\"hc\",\"version\":\"0\"}}}' http://localhost:3000/mcp >/dev/null || exit 1"]
+      interval: 3s
+      timeout: 2s
+      retries: 10
+      start_period: 5s
+
+  # The headless browser. Loads http://evil.example:3000 from the
+  # attacker, lets the JS execute the rebind, and asserts the post-rebind
+  # fetch successfully invokes the victim's MCP tool. Exit code drives
+  # the docker compose result.
+  playwright:
+    build: ./playwright
+    networks:
+      - lab
+    dns:
+      - 172.28.0.10   # use our rebind DNS server
+    depends_on:
+      attacker:
+        condition: service_started
+      victim:
+        condition: service_healthy
+    environment:
+      - REBIND_DOMAIN=evil.example
+      - REBIND_PORT=3000
+
+networks:
+  lab:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.28.0.0/16

@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>DNS-rebind PoC — attacker page</title>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro', sans-serif; max-width: 720px; margin: 2em auto; padding: 0 1em; }
+    pre { background: #f6f8fa; padding: 1em; border-radius: 6px; overflow-x: auto; }
+    .ok { color: #2ea043; font-weight: bold; }
+    .fail { color: #cf222e; font-weight: bold; }
+    .pending { color: #9a6700; }
+    code { background: #f6f8fa; padding: 2px 4px; border-radius: 3px; }
+  </style>
+</head>
+<body>
+
+<h1>DNS-rebind PoC — attacker page</h1>
+
+<p>This page is served from <code id="origin"></code>. When you visit it, the browser caches the DNS resolution of <code>evil.example</code> as the attacker's IP. After the 1-second TTL, the browser re-resolves and now gets the victim's IP — but the page's origin is still <code>evil.example:3000</code>, so the fetch is considered same-origin under SOP.</p>
+
+<p>If <code>mcp-streamablehttp-proxy</code> v0.2.0 is bound to <code>localhost:3000</code> with no <code>Origin</code> / <code>Host</code> validation (which it is by default), the post-rebind fetch will succeed.</p>
+
+<h2>Live trace</h2>
+<pre id="log">Waiting for rebind window…</pre>
+
+<h2>Result</h2>
+<pre id="result" class="pending">… in progress …</pre>
+
+<script src="/rebind.js"></script>
+</body>
+</html>
