@@ -2,16 +2,16 @@ services:
   # Custom DNS resolver. First lookup of `evil.example` returns the
   # attacker container's IP; subsequent lookups (after a 1-second TTL)
   # return the victim's IP. This is the DNS rebind primitive.
+  #
+  # Healthcheck is defined inside the Dockerfile (HEALTHCHECK instruction).
+  # The healthcheck script queries our own server on 127.0.0.1:53 directly —
+  # `socket.gethostbyname` would route via Docker's embedded DNS at
+  # 127.0.0.11, which knows nothing about evil.example.
   dns:
     build: ./dns
     networks:
       lab:
         ipv4_address: 172.28.0.10
-    healthcheck:
-      test: ["CMD", "python3", "-c", "import socket; socket.gethostbyname('evil.example')"]
-      interval: 2s
-      timeout: 1s
-      retries: 5
 
   # The attacker's web server. Hosts a single page with rebind.js that
   # makes the attack work. Both the attacker page and the victim's MCP
