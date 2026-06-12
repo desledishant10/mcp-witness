@@ -239,6 +239,7 @@ Attack surface enumerated by MCP primitive (tools, resources, prompts, sampling,
 - [docs/scenario-schema.md](docs/scenario-schema.md) — dynamic scenario YAML schema and step types
 - [docs/capability-classifier.md](docs/capability-classifier.md) — capability tag and parameter role vocabularies, calibration plan
 - [docs/detector-evolution-s014.md](docs/detector-evolution-s014.md) — worked example of how MCP-S-014 went from one of five to four of four across the W1–W4 patch series; methodology notes for static-rule evolution
+- [docs/methodology-soft-escalation.md](docs/methodology-soft-escalation.md) — the LinkedIn escape valve pattern: how a polite "if this is unmaintained, that's fine, just let me know" surfaced a verified maintainer reply on day +30 after 30 days of email silence
 
 ## Responsible disclosure
 

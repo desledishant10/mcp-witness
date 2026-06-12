@@ -109,6 +109,8 @@ Three patterns from this disclosure round that other coordinated-disclosure work
 
 When a small startup's maintainer email goes silent, the most likely explanation is "the project is dead and the maintainer doesn't want to admit it." A LinkedIn DM that **explicitly offers that as a polite escape valve** — *"if statespace as a company has wound down and the package is unmaintained, that's fine, just let me know and I'll include that in the public writeup"* — surfaced a verified-cofounder reply within hours on 2026-06-11 after 30 days of email silence. The escape-valve framing made it psychologically easy to confirm rather than feel cornered. Repeating this pattern in future disclosures.
 
+**Full writeup with the four-case taxonomy, verbatim messages, and the parallel atrawog case:** [docs/methodology-soft-escalation.md](../docs/methodology-soft-escalation.md).
+
 ### Channel-deflection-documentation as a substantive disclosure outcome
 
 The mcp-server-fetch-sse parallel notice to Anthropic went through **two corporate intake systems** (HackerOne + `disclosure@`) that both deflected without human review. Documenting the verbatim deflection texts in the disclosure record turned what would have been "couldn't reach Anthropic" into evidence about how disclosure-channel pathologies actually look in 2026. That's useful research-track material on its own, separate from the underlying vulnerability.
