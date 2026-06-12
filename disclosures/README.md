@@ -30,6 +30,35 @@ The disclosure track here is what no other MCP security project ships. Specifica
 
 The PoC harness for the DNS-rebinding class lives at [`poc/dns-rebind/`](../poc/dns-rebind/) and reproduces the vulnerability end-to-end with a single `make demo`. The reproduction round-trip — disclosure record → finding entry → runnable PoC — is itself unusual; most coordinated-disclosure records stop at the technical narrative.
 
+## Helper CLI
+
+The day +14 / +21 / +30 / +45 / +60 / +90 cadence used to run this disclosure track is codified in [`mcp-witness-disclose`](../disclose/):
+
+```bash
+mcp-witness-disclose status --today 2026-06-11
+#   today: 2026-06-11  (4 disclosures on disk)
+#
+#     SLUG                                           FILED       DAY   NEXT ACTION
+#     ---------------------------------------------  ----------  ----  -----------------------------------------
+#     2026-05-12-mcp-fetch-http-request-ssrf         2026-05-12  + 30  day +45 pointer issue in 15d (2026-06-26)
+#     2026-05-12-mcp-oauth-gateway-dns-rebinding     2026-05-12  + 30  day +45 pointer issue in 15d (2026-06-26)
+#     2026-06-02-fastmcp-http-dns-rebinding          2026-06-02  +  9  day +14 ping in 5d (2026-06-16)
+#     2026-06-02-mcp-server-fetch-sse-dns-rebinding  2026-06-02  +  9  day +14 ping in 5d (2026-06-16)
+#
+#   summary: 4 open / 0 closed; 0 due today; 0 overdue
+
+mcp-witness-disclose ping mcp-fetch-http-request --to "Esteban" --today 2026-06-11
+# renders the day +30 escalation body (auto-selected from the day-count),
+# with affected packages + embargo + slug auto-populated from the file
+
+mcp-witness-disclose new mcp-server-foo --class ssrf \
+    --filed-to maintainer@example.invalid \
+    --affected "\`mcp-server-foo\` v0.1.0"
+# scaffolds disclosures/2026-06-11-mcp-server-foo-ssrf.md with standard frontmatter
+```
+
+Pass `--today YYYY-MM-DD` to any subcommand for deterministic output (used in tests + for previewing future milestone bodies via `ping --day 60`).
+
 ## How this directory is organized
 
 ```
