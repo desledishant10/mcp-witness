@@ -47,7 +47,7 @@ MILESTONES: tuple[Milestone, ...] = (
     Milestone(
         90,
         "day +90 publish",
-        "Embargo end — publish the full disclosure regardless of maintainer response.",
+        "Embargo end. Publish the full disclosure regardless of maintainer response.",
     ),
 )
 

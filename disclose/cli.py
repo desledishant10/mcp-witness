@@ -102,7 +102,7 @@ def _status_row(d: Disclosure, today: date) -> dict:
     else:
         nm = next_milestone(day)
         if nm is None:
-            next_action = "embargo over — publish"
+            next_action = "embargo over, publish"
         else:
             target = d.filed + timedelta(days=nm.day)
             delta = (target - today).days
@@ -201,7 +201,7 @@ def cmd_ping(args: argparse.Namespace) -> int:
 
     if disc.filed is None:
         print(
-            f"disclosure {disc.slug} has no Filed date — cannot compute day-count", file=sys.stderr
+            f"disclosure {disc.slug} has no Filed date, cannot compute day-count", file=sys.stderr
         )
         return 2
 
@@ -218,7 +218,7 @@ def cmd_ping(args: argparse.Namespace) -> int:
     print(f"# Disclosure: {disc.slug}")
     print(f"# Day: +{day}")
     if cm:
-        print(f"# Current milestone: {cm.label} — {cm.action}")
+        print(f"# Current milestone: {cm.label}. {cm.action}")
     if nm:
         target = disc.filed + timedelta(days=nm.day)
         delta = (target - today).days

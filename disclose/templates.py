@@ -31,7 +31,7 @@ Hi $recipient,
 
 Quick follow-up on the coordinated security disclosure I sent on
 $filed_date (day +$day today). Just confirming the original mail
-reached you — sometimes security mail ends up in spam.
+reached you. Sometimes security mail ends up in spam.
 
 Affected: $affected
 Embargo: $embargo
@@ -59,8 +59,8 @@ again in case the earlier mail was filtered.
 Affected: $affected
 Embargo: $embargo
 
-If a different channel works better — GitHub Security Advisory, signal,
-anything — happy to switch. The disclosure record is at
+If a different channel works better (GitHub Security Advisory, Signal,
+anything), happy to switch. The disclosure record is at
 https://github.com/desledishant10/mcp-witness/blob/main/disclosures/$slug.md.
 
 Thanks,
@@ -77,7 +77,7 @@ Hi $recipient,
 
 Day +$day from the original disclosure today. The email channel has
 been silent through the day +14 and day +21 follow-ups, so I'm
-escalating to other channels in parallel — see options below.
+escalating to other channels in parallel. See options below.
 
 Affected: $affected
 Embargo: $embargo
@@ -130,7 +130,7 @@ private channel you prefer.
 
 
 PING_DAY_60 = _SafeTemplate(
-    """Subject: Re: [Coordinated security disclosure] $title — final notice before publish
+    """Subject: Re: [Coordinated security disclosure] $title (final notice before publish)
 
 Hi $recipient,
 
@@ -141,8 +141,8 @@ attempted.
 
 Embargo expires $embargo. Per the coordinated-disclosure policy
 published at the top of the disclosure record, on $embargo the
-full report will be published — including source-level evidence
-and reproduction details — regardless of whether a fix has shipped.
+full report will be published, including source-level evidence
+and reproduction details, regardless of whether a fix has shipped.
 
 This is the final notice. If you want any input on the public
 writeup (scope, framing, timing-coordination with a planned fix),
@@ -157,7 +157,7 @@ Dishant Desle
 NEW_DISCLOSURE_TEMPLATE = """# $title
 
 **Filed:** $filed_date
-**Filed by:** Dishant Desle — didesle7@gmail.com
+**Filed by:** Dishant Desle, didesle7@gmail.com
 **Filed to:** $filed_to
 **Affected:** $affected
 **Embargo:** $embargo_date (90 days from filing)
