@@ -9,7 +9,7 @@
 - `mcp-server-fetch` v2025.4.7 (PyPI; Anthropic reference)
 - `mcp-server-http-request` v0.1.0 (PyPI; community)
 **Embargo:** 2026-08-10 (90 days from filing — both packages)
-**Status:** **fix PR verified to close the gap (mcp-server-fetch); no response yet (mcp-server-http-request)**
+**Status:** **fix verified (mcp-server-fetch); maintainer-confirmed-unmaintained 2026-06-11 (mcp-server-http-request); awaiting yank decision**
 
 ---
 

@@ -34,7 +34,7 @@ All notable changes to mcp-witness. Format roughly follows [Keep a Changelog](ht
 
 - **`_walk_repo_files` substring-on-absolute-path bug.** The skip-fragment check (e.g. `/site-packages/`, `/.venv/`) was matched against the absolute path, which meant *any* scan rooted under `site-packages/` returned zero files. This silently broke `mcp-scan-audit <pypi-pkg>` for the entire v0.2 lifecycle — the documented quickstart workflow. Surfaced by re-running the v0.3 detector against the original DNS-rebind survey targets and getting zero hits despite the patches being correct. The walker now checks skip fragments against the path *relative* to root, so user-pointed-at scans inside one of the skip dirs work correctly.
 
-### Changed
+### Detector evolution (MCP-S-014 v0.3)
 
 - **MCP-S-014 detector v0.3 patches.** The DNS-rebinding survey surfaced three false-negative classes in the v0.2 detector; all are now fixed, plus a fourth (W4) surfaced during the post-patch verification re-run:
   - **W1 — host=variable resolution.** The detector previously only resolved string-literal host arguments. `uvicorn.run(app, host=host, port=port)` patterns where `host` is bound to `"0.0.0.0"` earlier (via module-level assignment or function parameter default) now resolve correctly. Pre-pass `_collect_string_bindings(tree)` walks the file for `ast.Assign` and `FunctionDef.args.defaults` / `kwonlyargs` bindings; `_extract_host_value` threads the binding map through and resolves `ast.Name` arguments. File-wide flat scope (no lexical-scope precision) is a deliberate heuristic for a "review this" static rule.
