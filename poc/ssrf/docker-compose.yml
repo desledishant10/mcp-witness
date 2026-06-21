@@ -40,7 +40,11 @@ services:
     build:
       context: ./attacker
       args:
-        MCP_FETCH_VERSION: ${MCP_FETCH_VERSION:-2025.4.7}
+        # Pip-installable spec. Default is the pre-fix PyPI release. The
+        # demo-fixed Makefile target overrides this with the PR #4226
+        # branch git URL since the fix hasn't shipped to PyPI as of
+        # 2026-06-20 (see ../README.md "Fix status" for details).
+        MCP_FETCH_SPEC: ${MCP_FETCH_SPEC:-mcp-server-fetch==2025.4.7}
     container_name: ssrf-poc-attacker
     networks:
       - metadata-net
@@ -49,5 +53,8 @@ services:
         condition: service_healthy
     environment:
       IMDS_URL: "http://169.254.169.254/latest/meta-data/iam/security-credentials/poc-demo-role"
+      # Display-only label printed by attack.py. Detached from the install
+      # spec so demo-fixed can label the run as "PR#4226-branch" while the
+      # install actually pulls the git ref.
       MCP_FETCH_VERSION: ${MCP_FETCH_VERSION:-2025.4.7}
     command: ["python", "attack.py"]

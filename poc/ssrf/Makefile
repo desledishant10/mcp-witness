@@ -16,9 +16,10 @@ help:
 	@echo ""
 	@echo "  make demo         Runs demo-quick, then demo-full."
 	@echo ""
-	@echo "  make demo-fixed   Same as demo-full but against a post-PR-#4226"
-	@echo "                    release. Set MCP_FETCH_VERSION first, e.g."
-	@echo "                    MCP_FETCH_VERSION=2026.5.30 make demo-fixed"
+	@echo "  make demo-fixed   Same shape as demo-full but installs from the"
+	@echo "                    PR #4226 branch directly. No fixed PyPI release"
+	@echo "                    exists yet (PR is open + unmerged as of"
+	@echo "                    2026-06-20). Expected outcome: FIX VERIFIED."
 	@echo ""
 	@echo "  make clean        Tear down containers + remove built images."
 
@@ -37,11 +38,15 @@ demo-full:
 	docker compose up --build --abort-on-container-exit --exit-code-from attacker
 
 demo-fixed:
-	@if [ -z "$$MCP_FETCH_VERSION" ]; then \
-		echo "set MCP_FETCH_VERSION to a post-PR-#4226 release first."; \
-		echo "  e.g.  MCP_FETCH_VERSION=2026.5.30 make demo-fixed"; \
-		exit 2; \
-	fi
+	@echo "═════════════════════════════════════════════════════════════════"
+	@echo " demo-fixed — install from PR #4226 branch + run against IMDS"
+	@echo "═════════════════════════════════════════════════════════════════"
+	@echo " No fixed PyPI release exists yet; PR #4226 is open + unmerged."
+	@echo " Verified 2026-06-20: latest PyPI v2026.6.4 still vulnerable."
+	@echo " Installing from the PR branch directly via pip git URL."
+	@echo ""
+	MCP_FETCH_SPEC="mcp-server-fetch @ git+https://github.com/modelcontextprotocol/servers.git@refs/pull/4226/head#subdirectory=src/fetch" \
+	MCP_FETCH_VERSION="PR#4226-branch" \
 	docker compose up --build --abort-on-container-exit --exit-code-from attacker
 
 clean:

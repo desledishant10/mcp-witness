@@ -1,10 +1,22 @@
 # SSRF PoC harness — `mcp-server-fetch` cloud-metadata reach
 
-End-to-end runnable reproduction of the SSRF in `mcp-server-fetch` that was disclosed at [modelcontextprotocol/servers#4143](https://github.com/modelcontextprotocol/servers/issues/4143) on 2026-05-12 and fixed in PR [#4226](https://github.com/modelcontextprotocol/servers/pull/4226) on 2026-05-22.
+End-to-end runnable reproduction of the SSRF in `mcp-server-fetch` that was disclosed at [modelcontextprotocol/servers#4143](https://github.com/modelcontextprotocol/servers/issues/4143) on 2026-05-12. A fix PR was opened on the same day as the disclosure ([PR #4226](https://github.com/modelcontextprotocol/servers/pull/4226) by `@kgarg2468`, a community contributor) and has been **open + unmerged for 30 days as of 2026-06-20**. The latest PyPI release of `mcp-server-fetch` (v2026.6.4, uploaded 2026-06-04) does **not** include the fix and is still vulnerable.
 
 Companion to [`poc/dns-rebind/`](../dns-rebind/). Both disclosed vulnerability classes (outbound SSRF and inbound DNS rebinding) now have a `make demo` reproduction.
 
 This harness is **not embargoed**. The vulnerability is already public via the upstream GitHub issue + PR; the harness just packages reproduction so anyone can verify in seconds without needing an AWS account.
+
+## Fix status (2026-06-20)
+
+Three states verified end-to-end against this harness on 2026-06-20:
+
+| State | Source spec | Result | Exit |
+|---|---|---|---|
+| Pre-fix (disclosed version) | `mcp-server-fetch==2025.4.7` | VULNERABLE — fake `AKIA-FAKE` token returned in the JSON-RPC response | 0 |
+| Latest PyPI release | `mcp-server-fetch==2026.6.4` | **VULNERABLE — fix never landed in a release** | 0 |
+| PR #4226 branch (the proposed fix) | `git+https://github.com/modelcontextprotocol/servers.git@refs/pull/4226/head#subdirectory=src/fetch` | FIX VERIFIED — *"Fetching private or non-public IP addresses is not allowed"* | 1 |
+
+`make demo-fixed` runs the third row above by default. Until the fix lands in a PyPI release, that's the only way to verify the fixed code path against the real `mcp-server-fetch` package surface.
 
 ## What this demonstrates
 
@@ -62,8 +74,12 @@ make demo-full
 # Both, sequentially
 make demo
 
-# Verify the fix
-MCP_FETCH_VERSION=<post-PR-#4226-release> make demo-fixed
+# Verify the fix against the PR #4226 branch (no fixed PyPI release exists)
+make demo-fixed
+
+# Verify against a specific pip-installable spec (release or git URL)
+MCP_FETCH_SPEC="mcp-server-fetch==<version>" MCP_FETCH_VERSION="<label>" \
+    docker compose up --build --abort-on-container-exit --exit-code-from attacker
 
 # Cleanup
 make clean
