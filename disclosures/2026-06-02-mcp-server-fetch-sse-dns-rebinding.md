@@ -141,6 +141,23 @@ The technical disclosure to Jack Adamson is the primary channel; HackerOne is in
 
 ## Updates
 
+### 2026-06-20 — day +18 catch-up email sent on the existing thread
+
+Day +14 ping at 2026-06-16 was missed in the schedule; sent the catch-up at day +18 instead as a reply on the original thread to `jadamson@anthropic.com`. Soft "confirming the original mail reached you" framing per the day +14 template (chosen by the milestone cadence helper since +18 < +21). No reference to a missed prior follow-up. Anthropic Security parallel notice via `disclosure@anthropic.com` was previously auto-deflected (see entry below) and not retried; the primary technical disclosure to the maintainer-of-record remains the binding channel.
+
+Body verbatim:
+
+> Hi Jack,
+>
+> Quick follow-up on the coordinated security disclosure I sent on 2026-06-02 (day +18 today). Just confirming the original mail reached you. Sometimes security mail ends up in spam.
+>
+> Affected: mcp-server-fetch-sse v0.1.1 (PyPI)
+> Embargo: 2026-08-10
+>
+> Happy to coordinate timeline or discuss the suggested fix shape on any channel that works for you. No urgency; just confirming visibility.
+
+Awaiting maintainer reply. Next milestone: day +21 ping on 2026-06-23 if still silent.
+
 ### 2026-06-03 — `disclosure@anthropic.com` returned an auto-responder; no human review reached
 
 The email sent on 2026-06-02 (see entry below) received an immediate response from `disclosure+noreply@anthropic.com` (the `+noreply` SMTP address pattern confirms this is intake automation, not a human reply). Verbatim auto-response body:
