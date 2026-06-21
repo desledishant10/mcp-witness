@@ -122,6 +122,7 @@ The escalation variant:
 - Swaps the wrapped stdio MCP from `mcp-server-time` (one read-only tool: `get_current_time`) to `mcp-server-shell` (one RCE-shaped tool: `execute_command(command: str)`).
 - Sets `ESCALATION_DEMO=1` so `playwright/escalation.spec.js` enables itself (the file `test.skip(...)`s otherwise — the base demo never runs the RCE leg, even if you accidentally invoke Playwright directly).
 - Drives `execute_command` with `echo "RCE-PROOF: $(whoami)@$(hostname)"` and asserts the marker appears in the MCP response. Distinctive enough to be unambiguous; harmless enough that no system state is altered.
+- Each mode runs exactly **one** Playwright spec file (`playwright.config.js` selects based on `ESCALATION_DEMO`). Running both back-to-back in the same compose-up would exhaust the rebind DNS server's per-query state and break whichever test ran second.
 
 ```bash
 make demo-rce
