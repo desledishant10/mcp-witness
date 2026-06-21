@@ -106,14 +106,14 @@ The full repro harness was follow-up work — now delivered at [`poc/dns-rebind/
 
 Once both conditions hold, the attacker page can execute arbitrary tools via the wrapped MCP server. The blast radius is whatever the wrapped server can do:
 
-| Wrapped server | Tools exposed | Attacker capability |
-|---|---|---|
-| `mcp-server-shell` | `execute_command` | Unauthenticated RCE |
-| `mcp-server-aidd` | 33 tools (read/write/exec) | Full filesystem + shell takeover |
-| `mcp-server-git` | 12 tools (commit/checkout/branch) | Repo manipulation |
-| `mcp-server-fetch` | URL fetch | Server-side fetch → recursive SSRF + cloud-metadata exfil per [modelcontextprotocol/servers#4143](https://github.com/modelcontextprotocol/servers/issues/4143) |
+| Wrapped server | Tools exposed | Attacker capability | Live demo |
+|---|---|---|---|
+| `mcp-server-shell` | `execute_command` | Unauthenticated RCE | **[`make demo-rce`](../poc/dns-rebind/README.md#escalation-demo-make-demo-rce--educational-use-only)** — containerized end-to-end PoC. Verified 2026-06-21: attacker-origin POST drives `execute_command "echo \"RCE-PROOF: $(whoami)@$(hostname)\""` and the response body returns `RCE-PROOF: root@<container-id>`. Container-confined; host not exposed. |
+| `mcp-server-aidd` | 33 tools (read/write/exec) | Full filesystem + shell takeover | not demoed (escalation profile is `mcp-server-shell`; aidd would extend the same chain) |
+| `mcp-server-git` | 12 tools (commit/checkout/branch) | Repo manipulation | not demoed |
+| `mcp-server-fetch` | URL fetch | Server-side fetch → recursive SSRF + cloud-metadata exfil per [modelcontextprotocol/servers#4143](https://github.com/modelcontextprotocol/servers/issues/4143) | not demoed (the SSRF surface is the subject of a separate finding + reproduction harness at [`poc/ssrf/`](../poc/ssrf/)) |
 
-The proxy is the universal multiplier — every stdio MCP server inherits the rebindability when fronted by it.
+The proxy is the universal multiplier — every stdio MCP server inherits the rebindability when fronted by it. The `mcp-server-shell` row is now demonstrated end-to-end via [`poc/dns-rebind/`](../poc/dns-rebind/) `make demo-rce`; the other rows extend the same chain.
 
 ## Interpretation
 
