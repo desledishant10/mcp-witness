@@ -4,6 +4,6 @@ WORKDIR /app
 COPY package.json /app/
 RUN npm install --silent
 
-COPY test.spec.js playwright.config.js /app/
+COPY test.spec.js escalation.spec.js playwright.config.js /app/
 
 CMD ["npx", "playwright", "test", "--reporter=list"]

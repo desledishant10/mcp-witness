@@ -1,0 +1,27 @@
+# Override for the DNS-rebind PoC that swaps the victim's wrapped stdio
+# MCP from mcp-server-time (benign) to mcp-server-shell (RCE). Adds an
+# ESCALATION_DEMO=1 environment variable that the Playwright suite reads
+# to enable escalation.spec.js (skipped by default).
+#
+# Usage:
+#   docker compose -f docker-compose.yml -f compose.escalation.yml up \
+#       --build --abort-on-container-exit --exit-code-from playwright
+#
+# Or via the Makefile:
+#   make demo-rce
+#
+# Educational use only. The shell runs inside the victim container; all
+# execution is confined to that throwaway container. Do NOT run against
+# any real mcp-streamablehttp-proxy deployment you don't own.
+
+services:
+  victim:
+    build:
+      context: ./victim
+      dockerfile: Dockerfile.escalation
+
+  playwright:
+    environment:
+      - REBIND_DOMAIN=evil.example
+      - REBIND_PORT=3000
+      - ESCALATION_DEMO=1

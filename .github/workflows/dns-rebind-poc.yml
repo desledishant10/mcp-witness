@@ -1,0 +1,48 @@
+name: dns-rebind-poc
+
+# Manual-dispatch only. The harness reproduces a coordinated-disclosure
+# vulnerability; running it on every push would (a) burn CI minutes on
+# Docker image builds and Playwright pulls, and (b) couple repo health to
+# the vulnerability still being unfixed. As a manual regression check,
+# this workflow becomes the signal: when the upstream fix lands, demo-full
+# starts failing.
+#
+# The escalation profile (`make demo-rce`, mcp-server-shell wrapped) is
+# deliberately NOT a workflow option. Escalation runs stay operator-
+# initiated on a local machine. See poc/dns-rebind/README.md
+# §"Escalation demo" for the reasoning.
+
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: 'Which probe to run'
+        required: true
+        default: 'demo-full'
+        type: choice
+        options:
+          - demo-quick
+          - demo-full
+
+jobs:
+  poc:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python (for demo-quick)
+        if: ${{ inputs.mode == 'demo-quick' }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Run ${{ inputs.mode }}
+        working-directory: poc/dns-rebind
+        run: make ${{ inputs.mode }}
+
+      - name: Cleanup
+        if: ${{ always() && inputs.mode == 'demo-full' }}
+        working-directory: poc/dns-rebind
+        run: make clean
