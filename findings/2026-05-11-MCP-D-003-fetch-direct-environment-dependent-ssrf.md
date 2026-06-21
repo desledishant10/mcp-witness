@@ -10,14 +10,26 @@
 
 `mcp-server-fetch` has no explicit SSRF protection — no scheme allowlist, no host denylist for link-local / RFC 1918 / loopback. The only accidental defense is its robots.txt-fetch-first behavior, which causes the main fetch to abort when robots.txt can't be reached. **This defense fails on any host that responds to TCP, including the AWS / GCP / Azure metadata services.**
 
+## Fix status update (2026-06-20)
+
+Three states verified end-to-end against the containerized [`poc/ssrf/`](../poc/ssrf/) harness today:
+
+| State | Source spec | Result |
+|---|---|---|
+| Pre-fix (disclosed version) | `mcp-server-fetch==2025.4.7` | VULNERABLE (fake AKIA token in response) |
+| Latest PyPI release | `mcp-server-fetch==2026.6.4` (uploaded 2026-06-04) | **VULNERABLE — fix never landed in a release** |
+| PR #4226 branch | `git+https://github.com/modelcontextprotocol/servers.git@refs/pull/4226/head#subdirectory=src/fetch` | FIX VERIFIED — *"Fetching private or non-public IP addresses is not allowed"* |
+
+**Fix PR #4226 is still open + unmerged 30 days after being opened by community contributor `@kgarg2468` on 2026-05-22.** The branch implementation is correct (verified twice — once on EC2 2026-05-22, once via the containerized harness 2026-06-20). The maintainer (Anthropic, per the PyPI `Author-email`) has not merged it. The latest PyPI release was cut 13 days after the PR opened and does not include the fix.
+
+This changes the disclosure outcome category: previously logged as "fix shipped + verified" (an inaccurate shorthand); the correct status is "community-authored fix PR open + branch-verified; awaiting maintainer merge." If the PR remains open through the 2026-08-10 embargo, the public writeup will describe both: the fix that exists at the source level, and the 90-day-and-counting unmerged state.
+
 ## Reproduction
 
 Two reproductions live in the repo, complementary rather than redundant:
 
-- [`poc/ssrf/`](../poc/ssrf/) — containerized one-command harness. `cd poc/ssrf && make demo-full` spins up a mock IMDS at the canonical link-local IP 169.254.169.254 inside a custom Docker network, drives the real `mcp-server-fetch==2025.4.7` package via stdio JSON-RPC, and confirms vulnerability by observing the fake `AKIA-FAKE` token in the response. Verified end-to-end 2026-06-20 with exit code 0. No AWS account required. Also runs as a pure-Python no-Docker probe via `make demo-quick`.
+- [`poc/ssrf/`](../poc/ssrf/) — containerized one-command harness. `cd poc/ssrf && make demo-full` spins up a mock IMDS at the canonical link-local IP 169.254.169.254 inside a custom Docker network, drives the real `mcp-server-fetch==2025.4.7` package via stdio JSON-RPC, and confirms vulnerability by observing the fake `AKIA-FAKE` token in the response. Verified end-to-end 2026-06-20 with exit code 0. `cd poc/ssrf && make demo-fixed` installs from the PR #4226 branch directly and confirms FIX VERIFIED with exit code 1.
 - [`docs/audit-runbook-ec2-ssrf-verification.md`](../docs/audit-runbook-ec2-ssrf-verification.md) — runbook for verification against real EC2 with real IAM credentials (the original 2026-05-12 demonstration).
-
-The harness is also the basis for verifying the fix: set `MCP_FETCH_VERSION` to a post-PR-#4226 release and re-run; expected outcome flips to "PoC RESULT: FIX VERIFIED" with exit code 1.
 
 ### Direct probe
 

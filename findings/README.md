@@ -10,7 +10,7 @@ This directory is **append-only**: a re-test that produces a different result go
 
 | Outcome | Count |
 |---|---|
-| Vulnerability — fix shipped + independently verified | 1 |
+| Vulnerability — community fix PR open + branch-verified, merge pending | 1 |
 | Vulnerability — maintainer-confirmed-unmaintained | 1 |
 | Vulnerability — silent through day +30 (escalation in progress) | 2 |
 | Vulnerability — silent through day +9 (next ping queued for day +14) | 2 |
@@ -24,7 +24,7 @@ Six findings of real exploitable behavior, every one traceable to a disclosure r
 
 | Date | Finding | Target | Class | Disclosure outcome | Detail |
 |---|---|---|---|---|---|
-| 2026-05-11 | MCP-D-003 fetch direct | `mcp-server-fetch` v2025.4.7 | SSRF → cloud metadata exfil | ✅ **Fix shipped + verified** — PR [modelcontextprotocol/servers#4226](https://github.com/modelcontextprotocol/servers/pull/4226); re-running the EC2 IAM-credential demo against the fix branch returns `"Fetching private or non-public IP addresses is not allowed"` | [2026-05-11-MCP-D-003-fetch-direct-environment-dependent-ssrf.md](2026-05-11-MCP-D-003-fetch-direct-environment-dependent-ssrf.md) |
+| 2026-05-11 | MCP-D-003 fetch direct | `mcp-server-fetch` v2025.4.7 | SSRF → cloud metadata exfil | ⚠️ **Community fix PR open + branch-verified; maintainer merge pending 30 days** — PR [modelcontextprotocol/servers#4226](https://github.com/modelcontextprotocol/servers/pull/4226) by `@kgarg2468`. Branch verified 2026-05-22 (EC2 demo) and 2026-06-20 (containerized `poc/ssrf/` harness); both refuse the IMDS URL. Latest PyPI release `mcp-server-fetch==2026.6.4` (uploaded 2026-06-04) still vulnerable | [2026-05-11-MCP-D-003-fetch-direct-environment-dependent-ssrf.md](2026-05-11-MCP-D-003-fetch-direct-environment-dependent-ssrf.md) |
 | 2026-05-11 | MCP-D-003 http-request direct | `mcp-server-http-request` v0.1.0 (statespace) | Same SSRF class as upstream `mcp-server-fetch` | 🟡 **Maintainer-confirmed unmaintained** (2026-06-11 via LinkedIn DM after day +30 escalation); yank request pending | [2026-05-11-MCP-D-003-http-request-direct-environment-dependent-ssrf.md](2026-05-11-MCP-D-003-http-request-direct-environment-dependent-ssrf.md) |
 | 2026-05-12 | MCP-S-014 proxy | `mcp-streamablehttp-proxy` v0.2.0 (atrawog) | DNS-rebinding + 127.0.0.1 bind + no Origin validation | ⏳ Silent through day +30; day +45 pointer-issue escalation queued for 2026-06-26 | [2026-05-12-MCP-S-014-streamablehttp-proxy-dns-rebinding.md](2026-05-12-MCP-S-014-streamablehttp-proxy-dns-rebinding.md) |
 | 2026-05-12 | MCP-S-014 fetch-streamablehttp-server | `mcp-fetch-streamablehttp-server` v0.2.0 (atrawog) | DNS-rebind + `0.0.0.0` bind + wildcard CORS + recursive SSRF | ⏳ Silent through day +30 (joint disclosure with proxy above) | [2026-05-12-MCP-S-014-fetch-streamablehttp-server-dns-rebinding.md](2026-05-12-MCP-S-014-fetch-streamablehttp-server-dns-rebinding.md) |

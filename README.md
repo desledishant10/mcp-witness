@@ -12,11 +12,11 @@
 
 ## Six coordinated security disclosures against PyPI-published MCP servers
 
-**One verified upstream fix shipped.** **One maintainer-confirmed-unmaintained outcome.** **Four filings in flight under coordinated embargo through 2026-08-10.**
+**One community-authored fix PR open + branch-verified (still awaiting maintainer merge 30 days later).** **One maintainer-confirmed-unmaintained outcome.** **Four filings in flight under coordinated embargo through 2026-08-10.**
 
 mcp-witness is built around the disclosure track at [`disclosures/`](disclosures/). The scanner — 14 static rules + 7 dynamic scenarios + a capability classifier — is the engine that surfaces filings. The disclosure records and their outcomes are the durable artifacts:
 
-- **`mcp-server-fetch` v2025.4.7** — SSRF demonstrated on EC2 with real AWS IAM credentials retrieved (`AccessKeyId` / `SecretAccessKey` / `Token` triplet). Coordinated disclosure filed as [modelcontextprotocol/servers#4143](https://github.com/modelcontextprotocol/servers/issues/4143) on 2026-05-12. Fix PR [#4226](https://github.com/modelcontextprotocol/servers/pull/4226) by `@kgarg2468` shipped 2026-05-22 with scheme allowlist + RFC-reserved-range denylist + per-redirect validation. ✅ **Independently re-verified 2026-05-22** — the same EC2 demo that previously returned IAM credentials now returns *"Fetching private or non-public IP addresses is not allowed"*.
+- **`mcp-server-fetch` v2025.4.7** — SSRF demonstrated on EC2 with real AWS IAM credentials retrieved (`AccessKeyId` / `SecretAccessKey` / `Token` triplet). Coordinated disclosure filed as [modelcontextprotocol/servers#4143](https://github.com/modelcontextprotocol/servers/issues/4143) on 2026-05-12. Community contributor `@kgarg2468` opened fix PR [#4226](https://github.com/modelcontextprotocol/servers/pull/4226) on 2026-05-22 with scheme allowlist + RFC-reserved-range denylist + per-redirect validation. ✅ **Branch verified 2026-05-22 (EC2 demo) and re-verified 2026-06-20 (containerized `poc/ssrf/` harness)** — both reproductions refuse the IMDS URL with *"Fetching private or non-public IP addresses is not allowed"* when run against the PR branch. ⚠️ **PR still open + unmerged 30 days after open; latest PyPI release `mcp-server-fetch==2026.6.4` (uploaded 2026-06-04) still vulnerable** to the exact same probe.
 - **`mcp-server-http-request` v0.1.0** (statespace) — same SSRF class. Filed via email 2026-05-12, silent through day +30, then maintainer-confirmed unmaintained via LinkedIn DM on 2026-06-11 ("not an actively maintained package"). Yank request pending.
 - **4× DNS rebinding** in HTTP-transport servers — `mcp-streamablehttp-proxy`, `mcp-fetch-streamablehttp-server`, `fastmcp-http`, `mcp-server-fetch-sse`. All under coordinated disclosure with 2026-08-10 embargo. Reproducible end-to-end via the containerized harness at [`poc/dns-rebind/`](poc/dns-rebind/) (`make demo`).
 
@@ -156,7 +156,7 @@ mcp-witness/
 |---|---|---|
 | 1 — Static analyzer | weeks 1–6 | **Complete.** All 14 v0.1 rules implemented (S-001..S-014); v0.3 patches W1–W4 closed the DNS-rebind detector gap surfaced by the survey. Python AST + captured-JSON modes + repo-level scanning; CLI with severity filtering and CI-friendly exit codes. |
 | 2 — Dynamic harness | weeks 7–14 | Substantially complete: direct + proxy modes, two agent drivers, 7 scenarios runnable end-to-end against real servers. |
-| 3 — Real-world audit | weeks 15–20 | **Substantially complete.** 12 documented findings against 11 PyPI-published servers, plus a [DNS-rebinding class survey](findings/2026-05-12-dns-rebinding-survey.md). Two CVE-track classes: SSRF in fetch-family servers (2 packages disclosed, **1 fix shipped + independently verified**) and DNS rebinding in HTTP-transport servers (4 packages, all under coordinated disclosure with 2026-08-10 embargo). |
+| 3 — Real-world audit | weeks 15–20 | **Substantially complete.** 12 documented findings against 11 PyPI-published servers, plus a [DNS-rebinding class survey](findings/2026-05-12-dns-rebinding-survey.md). Two CVE-track classes: SSRF in fetch-family servers (2 packages disclosed; 1 community-authored fix PR open + branch-verified, maintainer merge pending 30 days; 1 maintainer-confirmed unmaintained 2026-06-11) and DNS rebinding in HTTP-transport servers (4 packages, all under coordinated disclosure with 2026-08-10 embargo). |
 | 4 — Polish + publish | weeks 21–26 | **In flight.** Embargo-day blog draft in [drafts/](drafts/) (excluded from Pages indexing pre-embargo); EC2 audit runbook in [docs/](docs/). PyPI release + conference submission queued. |
 
 ## Scope and non-goals
@@ -188,7 +188,7 @@ Out of scope for v1 (intentional — these are good follow-ups, not features):
 | Dynamic scenarios | 7 (5 from v0.1 seed set + D-006 subtle-injection + D-007 cloud-metadata-exfil) |
 | Calibration corpus | **11 labeled targets, 87 tools, 100/100 precision-recall** (8 verified by direct capture) — hit the spec's "stable" threshold; CI-protected via [test_corpus_regression.py](calibration/tests/test_corpus_regression.py) |
 | Real-world finding entries | **12 + 1 class survey** (6 vulnerabilities across 2 disclosure-track classes — SSRF + DNS rebinding; 4 defense; 2 informational) |
-| Coordinated disclosures filed | **6** (1 fix shipped + independently verified; 5 awaiting maintainer response with 2026-08-10 embargo) |
+| Coordinated disclosures filed | **6** (1 community-authored fix PR open + branch-verified; 1 maintainer-confirmed unmaintained; 4 awaiting maintainer response with 2026-08-10 embargo) |
 | Packages | 5 (`analyzer`, `classifier`, `harness`, `calibration` + `scenarios` as YAML) |
 | Console scripts | 8 |
 
