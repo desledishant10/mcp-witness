@@ -82,6 +82,23 @@ The disclosure record itself being public is the responsible-disclosure norm —
 
 ## Updates
 
+### 2026-06-20 — day +18 catch-up comment posted on the issue thread
+
+Day +14 ping at 2026-06-16 was missed in the schedule; posted the catch-up at day +18 instead as a second comment on [ARadRareness/mcp-registry#3](https://github.com/ARadRareness/mcp-registry/issues/3). Soft "confirming the original mail reached you" framing per the day +14 template (chosen by the milestone cadence helper since +18 < +21). No reference to a missed prior follow-up; the public-issue channel makes any timing slip visible in the issue thread regardless, but the message text doesn't draw attention to it.
+
+Body verbatim:
+
+> Hi ARadRareness,
+>
+> Quick follow-up on the coordinated security disclosure I sent on 2026-06-02 (day +18 today). Just confirming the original mail reached you. Sometimes security mail ends up in spam.
+>
+> Affected: fastmcp-http v0.1.4 (PyPI)
+> Embargo: 2026-08-10
+>
+> Happy to coordinate timeline or discuss the suggested fix shape on any channel that works for you. No urgency; just confirming visibility.
+
+Awaiting maintainer reply. Next milestone: day +21 ping on 2026-06-23 if still silent.
+
 ### 2026-06-02 — Public issue filed
 
 Filed as [ARadRareness/mcp-registry#3](https://github.com/ARadRareness/mcp-registry/issues/3) (UTC timestamp 2026-06-04 in GitHub's display; submitted from `desledishant10` end-of-day 2026-06-02 local). Title and body match the verbatim draft above. The body intentionally omits source-line references, PoC code, and DNS-rebind harness details — embargo principle held by keeping exploit-actionable specifics in the private finding record at [findings/2026-05-12-MCP-S-014-fastmcp-http-dns-rebinding.md](../findings/2026-05-12-MCP-S-014-fastmcp-http-dns-rebinding.md). Awaiting maintainer reply with a private channel for full report.
