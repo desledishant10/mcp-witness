@@ -12,6 +12,15 @@
 
 ## Reproduction
 
+Two reproductions live in the repo, complementary rather than redundant:
+
+- [`poc/ssrf/`](../poc/ssrf/) — containerized one-command harness. `cd poc/ssrf && make demo-full` spins up a mock IMDS at the canonical link-local IP 169.254.169.254 inside a custom Docker network, drives the real `mcp-server-fetch==2025.4.7` package via stdio JSON-RPC, and confirms vulnerability by observing the fake `AKIA-FAKE` token in the response. Verified end-to-end 2026-06-20 with exit code 0. No AWS account required. Also runs as a pure-Python no-Docker probe via `make demo-quick`.
+- [`docs/audit-runbook-ec2-ssrf-verification.md`](../docs/audit-runbook-ec2-ssrf-verification.md) — runbook for verification against real EC2 with real IAM credentials (the original 2026-05-12 demonstration).
+
+The harness is also the basis for verifying the fix: set `MCP_FETCH_VERSION` to a post-PR-#4226 release and re-run; expected outcome flips to "PoC RESULT: FIX VERIFIED" with exit code 1.
+
+### Direct probe
+
 ```bash
 # Direct probe — exits non-zero when oracle fires:
 mcp-scan-test scenarios/MCP-D-003-ssrf-url-fetcher.yaml \
