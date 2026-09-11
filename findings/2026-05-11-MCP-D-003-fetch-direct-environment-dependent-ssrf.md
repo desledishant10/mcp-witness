@@ -17,14 +17,14 @@ Three states verified end-to-end against the containerized [`poc/ssrf/`](../poc/
 | State | Source spec | Result |
 |---|---|---|
 | Pre-fix (disclosed version) | `mcp-server-fetch==2025.4.7` | VULNERABLE (fake AKIA token in response) |
-| Latest PyPI release | `mcp-server-fetch==2026.6.4` (uploaded 2026-06-04) | **VULNERABLE — fix never landed in a release** |
+| Latest PyPI release | `mcp-server-fetch==2026.8.18` (current, 2026-08-18) | **VULNERABLE** (runtime-verified 2026-09-10) |
 | PR #4226 branch | `git+https://github.com/modelcontextprotocol/servers.git@refs/pull/4226/head#subdirectory=src/fetch` | FIX VERIFIED — *"Fetching private or non-public IP addresses is not allowed"* |
 
 **Fix PR #4226 is still open + unmerged 30 days after being opened by community contributor `@kgarg2468` on 2026-05-22.** The branch implementation is correct (verified twice — once on EC2 2026-05-22, once via the containerized harness 2026-06-20). The maintainer (Anthropic, per the PyPI `Author-email`) has not merged it. The latest PyPI release was cut 13 days after the PR opened and does not include the fix.
 
 This changes the disclosure outcome category: previously logged as "fix shipped + verified" (an inaccurate shorthand); the correct status is "community-authored fix PR open + branch-verified; awaiting maintainer merge." If the PR remains open through the 2026-08-10 embargo, the public writeup will describe both: the fix that exists at the source level, and the 90-day-and-counting unmerged state.
 
-## Status update (~2026-08-01): disclosure closed as "not planned" by vendor
+## Status update (2026-07-30): disclosure closed as "not planned" by vendor
 
 Anthropic contributor `@localden` closed [modelcontextprotocol/servers#4143](https://github.com/modelcontextprotocol/servers/issues/4143) as "not planned" and consolidated it to the older umbrella issue [#3741](https://github.com/modelcontextprotocol/servers/issues/3741) (opened 2026-03-27 by an external contributor; the only recorded prior comment is hidden as spam; no substantive activity beyond the consolidation event).
 
@@ -35,7 +35,7 @@ At the time of closure, PR #4226 (the community-authored fix by `@kgarg2468`) wa
 - Reviewed by external contributor `@LuuOW` on 2026-06-13 (technical audit; not an approving review with write access)
 - Independently reproduction-verified on 2026-06-20 via the containerized `poc/ssrf/` harness (see the Fix status table above)
 
-**PR #4226 remains open + unmerged.** No reviewer with write access has approved it. The latest PyPI release `mcp-server-fetch==2026.6.4` (uploaded 2026-06-04) is still vulnerable to the original probe.
+**PR #4226 remains open + unmerged.** No reviewer with write access has approved it. Three releases have shipped since the disclosure (v2026.6.4 on 2026-06-04, v2026.7.10 on 2026-07-10, v2026.8.18 on 2026-08-18); the current latest v2026.8.18 is still vulnerable to the original probe, confirmed by both source inspection and a `poc/ssrf/` harness run on 2026-09-10.
 
 This changes the disclosure outcome from "community fix PR open + branch-verified; awaiting maintainer merge" to **"vendor declined; consolidated to dormant umbrella; PR unmerged despite green CI + external review + independent verification."** Coordinated-disclosure obligations are satisfied: the report was received, considered, and closed by the maintainer, and the 90-day embargo policy (2026-08-10) has been observed. The public writeup describes both the technical vulnerability and the full disclosure-response chain end-to-end.
 

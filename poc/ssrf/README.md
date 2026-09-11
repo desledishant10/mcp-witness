@@ -1,6 +1,6 @@
 # SSRF PoC harness — `mcp-server-fetch` cloud-metadata reach
 
-End-to-end runnable reproduction of the SSRF in `mcp-server-fetch` disclosed at [modelcontextprotocol/servers#4143](https://github.com/modelcontextprotocol/servers/issues/4143) on 2026-05-12. **The disclosure was closed by an Anthropic contributor as "not planned" on ~2026-08-01** and consolidated to the older umbrella issue [#3741](https://github.com/modelcontextprotocol/servers/issues/3741) (dormant since March 2026). The community-authored fix [PR #4226](https://github.com/modelcontextprotocol/servers/pull/4226) by `@kgarg2468` (opened 2026-05-22, CI green 16/16, external technical review complete) **remains open + unmerged**. The latest PyPI release of `mcp-server-fetch` (v2026.6.4, uploaded 2026-06-04) is still vulnerable.
+End-to-end runnable reproduction of the SSRF in `mcp-server-fetch` disclosed at [modelcontextprotocol/servers#4143](https://github.com/modelcontextprotocol/servers/issues/4143) on 2026-05-12. **The disclosure was closed by an Anthropic contributor as "not planned" on 2026-07-30** and consolidated to the older umbrella issue [#3741](https://github.com/modelcontextprotocol/servers/issues/3741) (dormant since March 2026). The community-authored fix [PR #4226](https://github.com/modelcontextprotocol/servers/pull/4226) by `@kgarg2468` (opened 2026-05-22, CI green 16/16, external technical review complete) **remains open + unmerged**. Three releases have shipped since the disclosure (v2026.6.4, v2026.7.10, v2026.8.18); the current latest v2026.8.18 (uploaded 2026-08-18) is still vulnerable, runtime-verified via this harness on 2026-09-10.
 
 Since no vendor-shipped fix exists and no merged PR is coming, **this harness is the definitive public reproduction of the SSRF**. Anyone can verify the vulnerability against the real `mcp-server-fetch` package in ~5 seconds without an AWS account, and verify the community-proposed fix via `make demo-fixed` (which installs from PR #4226's branch directly).
 
@@ -15,7 +15,7 @@ Three states verified end-to-end against this harness on 2026-06-20:
 | State | Source spec | Result | Exit |
 |---|---|---|---|
 | Pre-fix (disclosed version) | `mcp-server-fetch==2025.4.7` | VULNERABLE — fake `AKIA-FAKE` token returned in the JSON-RPC response | 0 |
-| Latest PyPI release | `mcp-server-fetch==2026.6.4` | **VULNERABLE — fix never landed in a release** | 0 |
+| Latest PyPI release | `mcp-server-fetch==2026.8.18` (current) | **VULNERABLE, fix still in no release** (runtime-verified 2026-09-10) | 0 |
 | PR #4226 branch (the proposed fix) | `git+https://github.com/modelcontextprotocol/servers.git@refs/pull/4226/head#subdirectory=src/fetch` | FIX VERIFIED — *"Fetching private or non-public IP addresses is not allowed"* | 1 |
 
 `make demo-fixed` runs the third row above by default. Until the fix lands in a PyPI release, that's the only way to verify the fixed code path against the real `mcp-server-fetch` package surface.
