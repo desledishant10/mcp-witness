@@ -114,7 +114,7 @@ When an MCP server runs as an HTTP service, every request to it carries an `Orig
 
 ### Discovery: S-014 and the W1–W4 detector evolution
 
-Static-analyzer rule **MCP-S-014** flags HTTP-transport MCP servers that bind to loopback / `0.0.0.0` without Origin/Host validation. Original v0.1 detector was a string-literal pattern match plus a coarse "does the file mention Origin anywhere" suppression. That caught the first two findings (`mcp-streamablehttp-proxy`, `mcp-fetch-streamablehttp-server`) but missed the other two surveyed targets entirely.
+Static-analyzer rule **MCP-S-014** flags HTTP-transport MCP servers that bind to loopback / `0.0.0.0` without Origin/Host validation. Original v0.1 detector was a string-literal pattern match plus a coarse "does the file mention Origin anywhere" suppression. That fired on none of the four disclosure targets; each of `mcp-streamablehttp-proxy`, `mcp-fetch-streamablehttp-server`, `fastmcp-http`, and `mcp-server-fetch-sse` needed one of the W1-W4 patches (or manual source review) to surface.
 
 The survey itself taught the detector. Four patches (W1–W4) followed:
 

@@ -2,7 +2,7 @@
 
 MCP-S-014 is the static rule in mcp-witness that catches HTTP-transport MCP servers that bind to a network address without validating Origin or Host headers on inbound requests. Those servers are vulnerable to DNS rebinding. An attacker page on a domain whose DNS the attacker controls can flip the resolved IP to point at the victim machine, making the browser believe it's still talking to the original origin while the request actually hits the victim's MCP server on localhost.
 
-I wrote v0.2 of the rule in early May 2026. Then in mid-May I ran the DNS-rebinding survey across five PyPI-published Python MCP servers that ship an HTTP transport. The detector hit on one of them. The other four were vulnerable by manual source review. That's the kind of result that makes you stop and look at why your detector is wrong, rather than ship it as-is.
+I wrote v0.2 of the rule in early May 2026. Then in mid-May I ran the DNS-rebinding survey across five PyPI-published Python MCP servers that ship an HTTP transport. The detector hit on one of them (a fifth survey candidate, not one of the four packages I went on to disclose). The other four, the disclosure targets this piece is about, were all vulnerable and the detector missed every one; I found them by manual source review. That's the kind of result that makes you stop and look at why your detector is wrong, rather than ship it as-is.
 
 This is the story of how MCP-S-014 went from one of five to four of four. Four patches: W1, W2, W3, W4. None of them came from theory. Each one was a specific source file in front of me showing me a thing the detector had no idea how to handle.
 
