@@ -1,5 +1,7 @@
 # Prepared upstream PR: add mcp-witness to `modelcontextprotocol/servers` ADDITIONAL.md
 
+> **Status: opened 2026-09-13** as [modelcontextprotocol/servers#4802](https://github.com/modelcontextprotocol/servers/pull/4802). One-line addition to the `## 📚 Resources` section, placed immediately before the MCPWatch entry. The notes below are the original plan.
+
 **Target:** [`modelcontextprotocol/servers`](https://github.com/modelcontextprotocol/servers), file `ADDITIONAL.md`, section `## 📚 Resources`.
 
 **Why this section:** the Resources section already lists security tooling, including [MCPWatch](https://github.com/kapilduraphe/mcp-watch) ("A comprehensive security scanner for Model Context Protocol (MCP) servers..."), ToolHive, and the Webrix secure gateway. A security testing toolkit is squarely in scope and has direct precedent, so this is a low-friction, high-fit addition rather than a speculative one. (The README's third-party *server* list was retired in favor of the MCP Server Registry; ADDITIONAL.md remains the curated home for frameworks and resources.)
