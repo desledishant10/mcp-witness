@@ -12,7 +12,7 @@
 
 ## Six coordinated security disclosures against PyPI-published MCP servers
 
-**One vendor-declined outcome (community fix PR unmerged, disclosure closed as "not planned").** **One maintainer-confirmed-unmaintained outcome.** **Four filings in flight under coordinated embargo through 2026-08-10.**
+**One vendor-declined outcome (community fix PR unmerged, disclosure closed as "not planned").** **One maintainer-confirmed-unmaintained outcome.** **Four silent through embargo, no fix.** All six embargoes expired 2026-08-10; all publicly disclosed; **CVE requests filed for all six (2026-09-11)**.
 
 mcp-witness is built around the disclosure track at [`disclosures/`](disclosures/). The scanner — 14 static rules + 7 dynamic scenarios + a capability classifier — is the engine that surfaces filings. The disclosure records and their outcomes are the durable artifacts:
 
