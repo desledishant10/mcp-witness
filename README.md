@@ -25,6 +25,13 @@ Two CVE-track vulnerability classes covering both ends of the MCP transport boun
 **Full disclosure track:** [`disclosures/`](disclosures/) — status table, methodology notes, channel-decision audit trails.
 **Per-finding evidence:** [`findings/`](findings/) — reproduction + raw output + interpretation, one file per observation.
 
+### Published writeups
+
+The full start-to-finish account of each CVE-track class, written up after the embargo:
+
+- **[I found an SSRF in Anthropic's reference MCP server, proved it on EC2, and the verified fix is still unmerged](https://desledishant10.github.io/mcp-witness/docs/ssrf-mcp-server-fetch)** — the outbound SSRF class in `mcp-server-fetch`, proven with live IAM credentials, the community fix verified twice, and the four-month unmerged ending.
+- **[One assumption, four packages: inbound DNS rebinding across HTTP-transport MCP servers](https://desledishant10.github.io/mcp-witness/docs/dns-rebinding-http-mcp-servers)** — the inbound DNS-rebinding class across four independently authored servers, framed as one architectural assumption held four times.
+
 ## Findings ledger
 
 Twelve documented audit observations against eleven PyPI-published servers, captured in [findings/](findings/) (status-table index at [findings/README.md](findings/README.md)), plus a [DNS-rebinding class survey](findings/2026-05-12-dns-rebinding-survey.md) that frames four of them as one class:
@@ -157,7 +164,7 @@ mcp-witness/
 | 1 — Static analyzer | weeks 1–6 | **Complete.** All 14 v0.1 rules implemented (S-001..S-014); v0.3 patches W1–W4 closed the DNS-rebind detector gap surfaced by the survey. Python AST + captured-JSON modes + repo-level scanning; CLI with severity filtering and CI-friendly exit codes. |
 | 2 — Dynamic harness | weeks 7–14 | Substantially complete: direct + proxy modes, two agent drivers, 7 scenarios runnable end-to-end against real servers. |
 | 3 — Real-world audit | weeks 15–20 | **Substantially complete.** 12 documented findings against 11 PyPI-published servers, plus a [DNS-rebinding class survey](findings/2026-05-12-dns-rebinding-survey.md). Two CVE-track classes: SSRF in fetch-family servers (2 packages disclosed; 1 vendor-declined outcome with community fix PR unmerged; 1 maintainer-confirmed unmaintained 2026-06-11) and DNS rebinding in HTTP-transport servers (4 packages, all under coordinated disclosure with 2026-08-10 embargo). |
-| 4 — Polish + publish | weeks 21–26 | **In flight.** Embargo-day blog draft in [drafts/](drafts/) (excluded from Pages indexing pre-embargo); EC2 audit runbook in [docs/](docs/). PyPI release + conference submission queued. |
+| 4 — Polish + publish | weeks 21–26 | **In flight.** Two technical writeups published to GitHub Pages: [SSRF](https://desledishant10.github.io/mcp-witness/docs/ssrf-mcp-server-fetch) and [DNS-rebinding class](https://desledishant10.github.io/mcp-witness/docs/dns-rebinding-http-mcp-servers); EC2 audit runbook in [docs/](docs/). PyPI release + conference submission queued. |
 
 ## Scope and non-goals
 
