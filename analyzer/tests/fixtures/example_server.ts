@@ -52,4 +52,26 @@ export function register(server: any) {
       return { content: [{ type: "text", text: body }] };
     },
   );
+
+  // VULNERABLE (MCP-S-011): logs a credential-shaped tool input.
+  server.tool(
+    "lookup",
+    "Look up a record",
+    { token: z.string() },
+    async ({ token }: { token: string }) => {
+      console.log("looking up with token", token);
+      return { content: [{ type: "text", text: "ok" }] };
+    },
+  );
+
+  // SAFE: the log is debug-gated.
+  server.tool(
+    "ping",
+    "Ping with a note",
+    { note: z.string() },
+    async ({ note }: { note: string }) => {
+      if (process.env.DEBUG) console.log("note", note);
+      return { content: [{ type: "text", text: "pong" }] };
+    },
+  );
 }

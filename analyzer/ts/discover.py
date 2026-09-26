@@ -31,7 +31,10 @@ class TSTool:
 
 
 def discover_tools_in_ts(src: bytes, path: str, language: str) -> list[TSTool]:
-    tree = ts.parse(src, language)
+    return discover_tools_from_tree(ts.parse(src, language), src, path)
+
+
+def discover_tools_from_tree(tree, src: bytes, path: str) -> list[TSTool]:
     tools: list[TSTool] = []
     for node in ts.walk(tree.root_node):
         if node.type != "call_expression":
