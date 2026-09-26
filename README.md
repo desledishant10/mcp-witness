@@ -98,6 +98,7 @@ Two real findings on the official Anthropic reference server, surfaced from one 
 | `mcp-witness-disclose` | **Coordinated-disclosure helper.** Scaffold new disclosure records, track day-count milestones (`status`), render day-appropriate follow-up bodies (`ping`) |
 | `mcp-witness-detect` | **Detection validator.** Run the defender signatures against the fixtures and prove each fires on its attack and stays quiet on benign traffic |
 | `mcp-witness-guardrail` | **Runtime guardrail proxy.** Wrap a stdio MCP server; refuse SSRF tool calls to reserved addresses and calls to rug-pulled tools before they reach the server |
+| `mcp-witness-fuzz` | **Dynamic fuzzer.** Capability-aware adversarial payloads against a locally-run MCP server; classifies crashes, leaks, and vuln signals |
 
 ### Static analyzer rules (14 of 14 v0.1 rules implemented)
 
@@ -161,6 +162,15 @@ Detections catch attacks after the fact; the [guardrail/](guardrail/) proxy enfo
 - **Tool rug-pull block** — each tool definition is pinned on first sight; if a later `tools/list` changes it (the `MCP-D-004` mutate-after-approval vector), the tool is flagged and calls to it are refused.
 
 Decisions are emitted in the detections event schema, so blocking at runtime and detecting in the SIEM share one shape. `block` and `monitor` modes; the whole decision path is unit-tested and an end-to-end test proves an SSRF call is stopped before a real server subprocess can leak. See [guardrail/README.md](guardrail/README.md).
+
+### Fuzzer (find new bugs)
+
+Where the analyzer reads a tool definition statically, the [fuzzer/](fuzzer/) drives a locally-run server with adversarial inputs at scale. `mcp-witness-fuzz -- <server command>` captures `tools/list`, then uses the classifier to aim payloads by parameter role:
+
+- **SSRF** payloads at `url`/`host` params, **traversal** at `path`, **injection** at `command`/`query`, plus **type-confusion**, **boundary** (empty / 100k / control bytes / unicode), and **protocol** malformations for every tool.
+- An **oracle** classifies each response: `crash`, `hang`, `sensitive-read`, `ssrf-hit`, `command-injection`, `error-leak`, `sql-error`, or a clean `rejected` (not a finding). Findings are deduplicated and severity-ranked.
+
+Fuzz servers you run yourself, disclose responsibly, and confirm each finding manually before it becomes a report or CVE request. The payloads, oracle, and engine are unit-tested against an in-process vulnerable server that exhibits every bug class, with a well-behaved tool proving no false positives. See [fuzzer/README.md](fuzzer/README.md).
 
 ## Architecture
 

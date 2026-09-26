@@ -39,7 +39,7 @@ jobs:
       - name: Run tests with coverage
         run: |
           pytest -q \
-            --cov=analyzer --cov=classifier --cov=harness --cov=calibration --cov=detections --cov=guardrail \
+            --cov=analyzer --cov=classifier --cov=harness --cov=calibration --cov=detections --cov=guardrail --cov=fuzzer \
             --cov-report=term-missing \
             --cov-report=xml
       - name: Upload coverage XML (3.12 only)
