@@ -57,18 +57,28 @@ class _LoopThread:
         self.loop.call_soon_threadsafe(self.loop.stop)
 
 
+class TransportError(RuntimeError):
+    """The server could not be launched or spoke the protocol incorrectly."""
+
+
 def _with_client(server_cmd: list[str], fn: Callable[[TracedMCPClient, _LoopThread], object]):
     command, args = server_cmd[0], server_cmd[1:]
     lt = _LoopThread()
     client = TracedMCPClient(command, args)
-    lt.submit(client.__aenter__(), timeout=30)
+    entered = False
     try:
+        try:
+            lt.submit(client.__aenter__(), timeout=30)
+            entered = True
+        except Exception as exc:  # noqa: BLE001 - surface a clean transport error
+            raise TransportError(f"could not start or initialize the server: {exc}") from exc
         return fn(client, lt)
     finally:
-        try:
-            lt.submit(client.__aexit__(None, None, None), timeout=10)
-        except Exception:
-            pass
+        if entered:
+            try:
+                lt.submit(client.__aexit__(None, None, None), timeout=10)
+            except Exception:
+                pass
         lt.close()
 
 

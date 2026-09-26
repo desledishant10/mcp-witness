@@ -71,3 +71,14 @@ def test_empty_campaign_report():
 
     text = report.format_report(_Empty())
     assert "No findings" in text
+
+
+def test_cli_reports_a_non_mcp_server_cleanly(capsys):
+    """A command that is not an MCP server must fail cleanly, not traceback."""
+    import sys as _sys
+
+    from fuzzer import cli
+
+    rc = cli.main(["--", _sys.executable, "-c", "raise SystemExit(0)"])
+    assert rc == 2
+    assert "mcp-witness-fuzz" in capsys.readouterr().err

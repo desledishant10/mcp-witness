@@ -67,12 +67,18 @@ def main(argv: list[str] | None = None) -> int:
     if not server_cmd:
         parser.error("provide the downstream server command after '--'")
 
-    if args.dry_run:
-        return _dry_run(server_cmd, args.max_per_tool)
+    from fuzzer.transport import TransportError, run_live
 
-    from fuzzer.transport import run_live
+    try:
+        if args.dry_run:
+            return _dry_run(server_cmd, args.max_per_tool)
+        campaign = run_live(
+            server_cmd, max_per_tool=args.max_per_tool, per_call_timeout=args.timeout
+        )
+    except TransportError as exc:
+        print(f"mcp-witness-fuzz: {exc}", file=sys.stderr)
+        return 2
 
-    campaign = run_live(server_cmd, max_per_tool=args.max_per_tool, per_call_timeout=args.timeout)
     if args.json:
         print(json.dumps(to_dict(campaign), indent=2, default=str))
     else:
