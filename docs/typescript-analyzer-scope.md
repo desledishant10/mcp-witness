@@ -1,6 +1,6 @@
 # Scope: a TypeScript analyzer for mcp-witness
 
-**Status:** scoping (2026-09-26). **Why:** the static analyzer is Python-only (AST-based), but a large share of published MCP servers are TypeScript/Node. A TS analyzer roughly doubles the tool's real-world reach.
+**Status:** **Phase 1 implemented (2026-09-26)** — `analyzer/ts/` ships the tree-sitter front-end plus S-006 and S-007; see the Phasing section. Phases 2–3 remain. **Why:** the static analyzer was Python-only (AST-based), but a large share of published MCP servers are TypeScript/Node. A TS analyzer roughly doubles the tool's real-world reach.
 
 ## The key insight: most of the work is already done
 

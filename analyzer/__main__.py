@@ -8,7 +8,7 @@ import sys
 from dataclasses import asdict
 from pathlib import Path
 
-from .analyze import analyze_path
+from .analyze import TypeScriptExtraMissing, analyze_path
 
 _SEV_ORDER = {"info": 0, "low": 1, "medium": 2, "high": 3, "critical": 4}
 
@@ -31,7 +31,11 @@ def main() -> int:
     )
     args = p.parse_args()
 
-    findings = analyze_path(args.path)
+    try:
+        findings = analyze_path(args.path)
+    except TypeScriptExtraMissing as exc:
+        print(f"mcp-witness-analyze: {exc}", file=sys.stderr)
+        return 2
 
     threshold = _SEV_ORDER[args.min_severity]
     findings = [f for f in findings if _SEV_ORDER[f.severity] >= threshold]

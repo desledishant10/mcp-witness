@@ -16,7 +16,7 @@ jobs:
           python-version: "3.12"
           cache: pip
       - name: Install
-        run: pip install -e ".[dev]"
+        run: pip install -e ".[dev,ts]"
       - name: Ruff check
         run: ruff check .
       - name: Ruff format check
@@ -35,7 +35,7 @@ jobs:
           python-version: ${{ matrix.python-version }}
           cache: pip
       - name: Install
-        run: pip install -e ".[dev]"
+        run: pip install -e ".[dev,ts]"
       - name: Run tests with coverage
         run: |
           pytest -q \

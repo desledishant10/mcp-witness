@@ -31,6 +31,10 @@ dev = [
 anthropic = [
     "anthropic>=0.40",
 ]
+ts = [
+    "tree-sitter>=0.25",
+    "tree-sitter-language-pack>=1.19",
+]
 
 [tool.ruff]
 line-length = 100

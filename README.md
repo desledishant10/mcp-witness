@@ -120,7 +120,9 @@ Two real findings on the official Anthropic reference server, surfaced from one 
 | `MCP-S-014` | HTTP transport binds to loopback / `0.0.0.0` without Origin/Host validation (DNS rebinding); CORS `allow_origins=['*']` + `allow_credentials=True` antipattern. v0.3 adds W1 (host-variable resolution), W2 (AST-based Origin validation check), W3 (aiohttp.web bind shapes), W4 (`os.getenv` default resolution). | repo-level, AST |
 | `MCP-S-015` | Two tools whose names collide under normalization — an exact duplicate (undefined dispatch, `critical`), or a near-duplicate differing only by case / unicode / zero-width char / Cyrillic-Greek homoglyph / separator style (`high`). A shadowing surface where a call can be routed to the wrong handler. | server-level, heuristic |
 
-Every rule's lexicon decisions are commented with the calibration evidence that drove them. Spec for all 14 rules: [docs/static-rules.md](docs/static-rules.md).
+Every rule's lexicon decisions are commented with the calibration evidence that drove them. Spec for all 15 rules: [docs/static-rules.md](docs/static-rules.md).
+
+**TypeScript/JavaScript support.** The 8 definition-based rules (S-001..S-005, S-008, S-009, S-015) and the secret scan (S-010) are language-agnostic — a TS server captured with `mcp-witness-capture` runs them unchanged. A tree-sitter source front-end (`analyzer/ts/`, `pip install 'mcp-witness[ts]'`) adds the handler-body rules for TS/JS: `mcp-witness-analyze server.ts` currently runs **S-006 (path traversal)** and **S-007 (command injection)** against `server.tool(...)` / `server.registerTool(...)` registrations. Scope and roadmap for the remaining source rules: [docs/typescript-analyzer-scope.md](docs/typescript-analyzer-scope.md).
 
 ### Dynamic scenarios (7 in the seed set)
 
