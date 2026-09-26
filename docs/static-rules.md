@@ -252,6 +252,24 @@ The lesson worth lifting if you're authoring a similar rule: the survey itself i
 
 ---
 
+### MCP-S-015 — Tool-name collision / shadowing
+**Languages:** both (operates on the captured tool set). **Severity:** critical (exact duplicate) / high (normalized near-duplicate). **Approach:** server-level, heuristic.
+
+**What:** a server exposes two tools an agent cannot reliably tell apart. An exact byte-for-byte duplicate makes dispatch undefined; a near-duplicate — differing only by case, NFKC width, a zero-width character, a Cyrillic/Greek homoglyph, or separator style (snake / kebab / dot / space) — lets a hostile or compromised tool impersonate a trusted one, so the agent (or a client matching names loosely) may route a call to the wrong handler. This is the server-surface companion to the description-level shadowing S-002 flags.
+
+**Detection:** two passes over the tool names. Exact-name duplicates are flagged `critical`. Then each name is folded to a canonical key by `_normalize_tool_name` (NFKC normalize, strip zero-width/format characters, casefold, map a table of common non-folding Cyrillic/Greek confusables to Latin, strip `-`/`_`/`.`/space); two or more *distinct* raw names sharing a key are flagged `high`.
+
+**Vulnerable (homoglyph shadow):**
+```text
+tools: "read_file"  and  "reаd_file"   # second uses Cyrillic 'а' (U+0430)
+```
+
+**Safe:** distinct, visibly-and-byte-wise-unique tool names.
+
+**FP modes:** the confusable table is intentionally non-exhaustive (enough to catch a plausible homoglyph shadow, not a full Unicode confusables database); a server that deliberately ships two styling variants of one name will flag and should be reviewed.
+
+---
+
 ## Output format
 
 Findings are emitted as a single JSON document plus a human-readable Markdown report. Each finding:

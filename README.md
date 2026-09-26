@@ -14,7 +14,7 @@
 
 **One vendor-declined outcome (community fix PR unmerged, disclosure closed as "not planned").** **One maintainer-confirmed-unmaintained outcome.** **Four silent through embargo, no fix.** All six embargoes expired 2026-08-10; all publicly disclosed; **CVE requests filed for all six (2026-09-11)**.
 
-mcp-witness is built around the disclosure track at [`disclosures/`](disclosures/). The scanner — 14 static rules + 7 dynamic scenarios + a capability classifier — is the engine that surfaces filings. The disclosure records and their outcomes are the durable artifacts:
+mcp-witness is built around the disclosure track at [`disclosures/`](disclosures/). The scanner — 15 static rules + 7 dynamic scenarios + a capability classifier — is the engine that surfaces filings. The disclosure records and their outcomes are the durable artifacts:
 
 - **`mcp-server-fetch` v2025.4.7** — SSRF demonstrated on EC2 with real AWS IAM credentials retrieved (`AccessKeyId` / `SecretAccessKey` / `Token` triplet). Coordinated disclosure filed as [modelcontextprotocol/servers#4143](https://github.com/modelcontextprotocol/servers/issues/4143) on 2026-05-12. Community contributor `@kgarg2468` opened fix PR [#4226](https://github.com/modelcontextprotocol/servers/pull/4226) on 2026-05-22 (scheme allowlist + RFC-reserved-range denylist + per-redirect validation); CI green (16/16), external technical audit by `@LuuOW`, branch verified end-to-end via containerized [`poc/ssrf/`](poc/ssrf/) harness against the link-local IMDS vector. 🔴 **Disclosure closed as "not planned" by Anthropic contributor `@localden` (2026-07-30) and consolidated to dormant umbrella issue [#3741](https://github.com/modelcontextprotocol/servers/issues/3741) (opened 2026-03-27, no substantive activity since). PR #4226 remains open + unmerged despite CI green + external review + independent reproduction. Three releases shipped since disclosure (v2026.6.4, v2026.7.10, v2026.8.18); current latest v2026.8.18 (2026-08-18) still vulnerable, runtime-verified via the `poc/ssrf/` harness on 2026-09-10.** Coordinated-disclosure obligations satisfied; 2026-08-10 embargo observed.
 - **`mcp-server-http-request` v0.1.0** (statespace) — same SSRF class. Filed via email 2026-05-12, silent through day +30, then maintainer-confirmed unmaintained via LinkedIn DM on 2026-06-11 ("not an actively maintained package"). Yank request pending.
@@ -100,7 +100,7 @@ Two real findings on the official Anthropic reference server, surfaced from one 
 | `mcp-witness-guardrail` | **Runtime guardrail proxy.** Wrap a stdio MCP server; refuse SSRF tool calls to reserved addresses and calls to rug-pulled tools before they reach the server |
 | `mcp-witness-fuzz` | **Dynamic fuzzer.** Capability-aware adversarial payloads against a locally-run MCP server; classifies crashes, leaks, and vuln signals |
 
-### Static analyzer rules (14 of 14 v0.1 rules implemented)
+### Static analyzer rules (15 implemented)
 
 | ID | What it catches | Mode |
 |----|---|---|
@@ -118,6 +118,7 @@ Two real findings on the official Anthropic reference server, surfaced from one 
 | `MCP-S-012` | `RootsCapability` referenced but `list_roots()` never called — declared containment guarantee not enforced | repo-level, AST |
 | `MCP-S-013` | Prompt template interpolates handler parameters into `system`/`assistant`-role messages without sanitization | repo-level, AST + light taint |
 | `MCP-S-014` | HTTP transport binds to loopback / `0.0.0.0` without Origin/Host validation (DNS rebinding); CORS `allow_origins=['*']` + `allow_credentials=True` antipattern. v0.3 adds W1 (host-variable resolution), W2 (AST-based Origin validation check), W3 (aiohttp.web bind shapes), W4 (`os.getenv` default resolution). | repo-level, AST |
+| `MCP-S-015` | Two tools whose names collide under normalization — an exact duplicate (undefined dispatch, `critical`), or a near-duplicate differing only by case / unicode / zero-width char / Cyrillic-Greek homoglyph / separator style (`high`). A shadowing surface where a call can be routed to the wrong handler. | server-level, heuristic |
 
 Every rule's lexicon decisions are commented with the calibration evidence that drove them. Spec for all 14 rules: [docs/static-rules.md](docs/static-rules.md).
 
@@ -222,7 +223,7 @@ Out of scope for v1 (intentional — these are good follow-ups, not features):
 | | |
 |---|---|
 | Tests passing | **191 / 191** |
-| Analyzer rules | **14 of 14** (S-001..S-014) — v0.1 spec complete + v0.3 W1–W4 patches |
+| Analyzer rules | **15** (S-001..S-015) — v0.1 spec complete + v0.3 W1–W4 patches + S-015 tool-name collision |
 | Dynamic scenarios | 7 (5 from v0.1 seed set + D-006 subtle-injection + D-007 cloud-metadata-exfil) |
 | Calibration corpus | **11 labeled targets, 87 tools, 100/100 precision-recall** (8 verified by direct capture) — hit the spec's "stable" threshold; CI-protected via [test_corpus_regression.py](calibration/tests/test_corpus_regression.py) |
 | Real-world finding entries | **12 + 1 class survey** (6 vulnerabilities across 2 disclosure-track classes — SSRF + DNS rebinding; 4 defense; 2 informational) |

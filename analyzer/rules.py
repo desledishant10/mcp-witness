@@ -15,6 +15,7 @@ from __future__ import annotations
 import ast
 import fnmatch
 import re
+import unicodedata
 from collections.abc import Callable
 from pathlib import Path
 
@@ -668,6 +669,127 @@ def check_overbroad_capability_surface(tools: list[DiscoveredTool]) -> list[Find
                     f"Tools involved: {', '.join(combo.tools)}"
                 ),
                 evidence=f"rationale={combo.rationale}",
+            )
+        )
+    return findings
+
+
+# ---------------------------------------------------------------------------
+# MCP-S-015 — Tool-name collision / shadowing
+# ---------------------------------------------------------------------------
+
+# Zero-width and format characters that carry no glyph but survive in a name,
+# letting two visibly-identical names differ byte-for-byte.
+_ZERO_WIDTH = {
+    "​",  # zero-width space
+    "‌",  # zero-width non-joiner
+    "‍",  # zero-width joiner
+    "⁠",  # word joiner
+    "﻿",  # zero-width no-break space / BOM
+}
+# Common confusables NFKC does *not* fold (Cyrillic/Greek look-alikes → Latin).
+# Enough to catch a homoglyph shadow of a plausible tool name; not exhaustive.
+_CONFUSABLE_FOLD = str.maketrans(
+    {
+        "а": "a",  # CYRILLIC а
+        "е": "e",  # CYRILLIC е
+        "о": "o",  # CYRILLIC о
+        "р": "p",  # CYRILLIC р
+        "с": "c",  # CYRILLIC с
+        "х": "x",  # CYRILLIC х
+        "ѕ": "s",  # CYRILLIC ѕ
+        "і": "i",  # CYRILLIC і
+        "ј": "j",  # CYRILLIC ј
+        "һ": "h",  # CYRILLIC һ
+        "ԁ": "d",  # CYRILLIC ԁ
+        "ο": "o",  # GREEK ο
+        "α": "a",  # GREEK α
+        "ρ": "p",  # GREEK ρ
+        "ɡ": "g",  # LATIN SMALL SCRIPT G
+    }
+)
+# Separators that name styles vary on (snake / kebab / dot / space).
+_SEP_STRIP = str.maketrans({"-": "", "_": "", ".": "", " ": ""})
+
+
+def _normalize_tool_name(name: str) -> str:
+    """Fold a tool name to a canonical key so that names an agent (or a
+    fuzzy-matching client) would treat as "the same tool" collapse together:
+    case, NFKC width/compatibility, zero-width chars, Cyrillic/Greek
+    homoglyphs, and separator style."""
+    s = unicodedata.normalize("NFKC", name)
+    s = "".join(ch for ch in s if ch not in _ZERO_WIDTH)
+    s = s.casefold().translate(_CONFUSABLE_FOLD)
+    return s.translate(_SEP_STRIP)
+
+
+def check_tool_name_collision(tools: list[DiscoveredTool]) -> list[Finding]:
+    """MCP-S-015 — two tools whose names collide under normalization.
+
+    A server that exposes two tools an agent cannot reliably tell apart is a
+    shadowing surface: an exact duplicate makes dispatch ambiguous, and a
+    near-duplicate (differing only by case, a zero-width character, a
+    Cyrillic/Greek homoglyph, or snake-vs-kebab styling) lets a hostile or
+    compromised tool impersonate a trusted one — the agent, or a client that
+    matches names loosely, may route a call to the wrong handler. This is the
+    server-surface companion to the description-level shadowing S-002 flags.
+
+    Exact byte-for-byte duplicates are `critical` (dispatch is undefined);
+    normalized-only collisions are `high`.
+    """
+    findings: list[Finding] = []
+    named = [t for t in tools if t.name]
+
+    # Exact duplicates first — undefined dispatch, highest severity.
+    seen_exact: dict[str, DiscoveredTool] = {}
+    exact_dupes: set[str] = set()
+    for t in named:
+        if t.name in seen_exact:
+            first = seen_exact[t.name]
+            exact_dupes.add(t.name)
+            findings.append(
+                Finding(
+                    rule_id="MCP-S-015",
+                    severity="critical",
+                    category="tool.name_collision",
+                    file=t.source_path,
+                    line=t.line,
+                    tool_name=t.name,
+                    message=(
+                        f"Duplicate tool name {t.name!r} exposed more than once; "
+                        f"which handler a call reaches is undefined. "
+                        f"First seen at {first.source_path or '<server>'}:{first.line}."
+                    ),
+                    evidence=f"name={t.name!r}",
+                )
+            )
+        else:
+            seen_exact[t.name] = t
+
+    # Normalized (near-duplicate) collisions among the distinct raw names.
+    groups: dict[str, list[DiscoveredTool]] = {}
+    for t in named:
+        groups.setdefault(_normalize_tool_name(t.name), []).append(t)
+    for key, members in groups.items():
+        raw_names = sorted({m.name for m in members})
+        if len(raw_names) < 2:
+            continue  # single distinct name (exact-dupe case handled above)
+        culprit = members[-1]
+        findings.append(
+            Finding(
+                rule_id="MCP-S-015",
+                severity="high",
+                category="tool.name_collision",
+                file=culprit.source_path,
+                line=culprit.line,
+                tool_name=culprit.name,
+                message=(
+                    "Tool names collide under normalization "
+                    "(case / unicode / zero-width / homoglyph / separator): "
+                    f"{', '.join(repr(n) for n in raw_names)} — a shadowing surface "
+                    "where a call may be routed to the wrong handler."
+                ),
+                evidence=f"normalized={key!r} names={raw_names}",
             )
         )
     return findings
@@ -1732,6 +1854,7 @@ RULES: list[Callable[[DiscoveredTool], list[Finding]]] = [
 SERVER_RULES: list[Callable[[list[DiscoveredTool]], list[Finding]]] = [
     check_cross_tool_references,
     check_overbroad_capability_surface,
+    check_tool_name_collision,
 ]
 
 # Repo-level rules — operate on the scan root path. Used for findings that
