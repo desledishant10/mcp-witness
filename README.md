@@ -97,6 +97,7 @@ Two real findings on the official Anthropic reference server, surfaced from one 
 | `mcp-witness-test` | Run a dynamic scenario against a real MCP server, optionally with a real LLM agent |
 | `mcp-witness-disclose` | **Coordinated-disclosure helper.** Scaffold new disclosure records, track day-count milestones (`status`), render day-appropriate follow-up bodies (`ping`) |
 | `mcp-witness-detect` | **Detection validator.** Run the defender signatures against the fixtures and prove each fires on its attack and stays quiet on benign traffic |
+| `mcp-witness-guardrail` | **Runtime guardrail proxy.** Wrap a stdio MCP server; refuse SSRF tool calls to reserved addresses and calls to rug-pulled tools before they reach the server |
 
 ### Static analyzer rules (14 of 14 v0.1 rules implemented)
 
@@ -151,6 +152,15 @@ The offensive half of this repo shows how MCP servers break; [detections/](detec
 - **Sigma** rules (portable, convert with pySigma) for the SSRF-to-metadata, SSRF-to-internal, DNS-rebind-answer, and inbound Origin/Host-mismatch signatures, each carrying CWE + MITRE ATT&CK tags.
 - **Suricata** network signatures (SIDs 9000001+) for the same classes.
 - A **self-contained validator** (`mcp-witness-detect`) that runs every rule against attack and benign fixtures and fails on a single miss or false positive, plus `make validate-live` which runs the real `poc/` probes and matches their actual output. See [detections/README.md](detections/README.md).
+
+### Runtime guardrail (detect and prevent)
+
+Detections catch attacks after the fact; the [guardrail/](guardrail/) proxy enforces the same policy live. Point your MCP client at `mcp-witness-guardrail -- <server command>` and it sits between client and server on the stdio JSON-RPC stream:
+
+- **SSRF egress block** — a `tools/call` whose URL argument resolves to a reserved address (link-local IMDS, RFC1918, loopback) is refused with a JSON-RPC error before it reaches the server, so the credential fetch never happens. Hostnames are resolved first, catching `metadata.google.internal` and rebind flips.
+- **Tool rug-pull block** — each tool definition is pinned on first sight; if a later `tools/list` changes it (the `MCP-D-004` mutate-after-approval vector), the tool is flagged and calls to it are refused.
+
+Decisions are emitted in the detections event schema, so blocking at runtime and detecting in the SIEM share one shape. `block` and `monitor` modes; the whole decision path is unit-tested and an end-to-end test proves an SSRF call is stopped before a real server subprocess can leak. See [guardrail/README.md](guardrail/README.md).
 
 ## Architecture
 
