@@ -4,6 +4,12 @@ All notable changes to mcp-witness. Format roughly follows [Keep a Changelog](ht
 
 ## [Unreleased] — main branch
 
+_Nothing yet._
+
+## [0.3.0] — 2026-09-26
+
+The defense-and-discovery release: three new modules turn the scanner into a full loop — find, detect, prevent, find more — plus the post-embargo disclosure work (two published writeups, six CVE requests filed with MITRE) and the runtime-verified vendor-declined SSRF outcome.
+
 ### Added
 
 - **New `fuzzer/` module: an automated, capability-aware dynamic fuzzer for MCP servers.** `mcp-witness-fuzz -- <server command>` captures a locally-run server's `tools/list` and, using the capability classifier to label each parameter's role, aims the payload family that exercises that role's bug class: SSRF payloads (IMDS / loopback / `file://` / `gopher://`) at `url`/`host` params, path traversal at `path`, command injection at `command`, SQL/injection at `query`, plus type-confusion, boundary (empty / 100k / control-byte / unicode), and protocol malformations for every tool. An oracle classifies each response into `crash` / `hang` / `sensitive-read` / `ssrf-hit` / `command-injection` / `error-leak` / `sql-error` / `rejected` / `ok`, findings are deduplicated by (tool, category, outcome) and severity-ranked, and the report notes each is a candidate needing manual confirmation. The live stdio transport reuses the harness MCP client; `--dry-run` lists what would be sent without sending it. Payloads, oracle, and engine are pure and unit-tested against an in-process vulnerable server that exhibits every bug class, with a well-behaved tool proving no false positives (14 module tests). Wired into pyproject (package + `mcp-witness-fuzz` console script) and CI coverage. See [`fuzzer/README.md`](fuzzer/README.md).
