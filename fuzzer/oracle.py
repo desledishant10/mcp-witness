@@ -16,6 +16,7 @@ from fuzzer.models import (
     ERROR_LEAK,
     HANG,
     OK,
+    OUTPUT_INJECTION,
     REJECTED,
     SENSITIVE_READ,
     SQL_ERROR,
@@ -58,6 +59,25 @@ _SQL_ERRORS = (
     "unrecognized token",
     "no such table",
 )
+# Model-directed instructions in a tool *response*. The fuzzer never sends any
+# of these, so their appearance in output is server-authored — a tool result
+# trying to steer the agent (the return-value counterpart to a poisoned tool
+# description). Matched case-insensitively.
+_OUTPUT_INJECTION = (
+    re.compile(r"\b(ignore|disregard|forget)\s+(all\s+)?(previous|prior|above|earlier)\b", re.I),
+    re.compile(r"\byou\s+(must|should|shall|will|now|are\s+required\s+to)\b", re.I),
+    re.compile(r"\b(do\s+not|don'?t|never)\s+(tell|inform|mention|reveal|show)\s+the\s+user\b", re.I),
+    re.compile(r"\bnew\s+(instructions?|system\s+prompt|directive)\b", re.I),
+    re.compile(r"^\s*(system|assistant)\s*:", re.I | re.M),
+    re.compile(r"</?(system|important|instructions?)>", re.I),
+    re.compile(r"\b(call|invoke|use|run)\s+the\s+\w+\s+tool\b", re.I),
+)
+# ANSI/OSC terminal escapes in output: a CLI MCP client that prints tool
+# results can be driven (cursor moves, screen clears, hyperlink/OSC sequences)
+# or have text hidden from the operator. ESC built via chr(27) to keep raw
+# control bytes out of source.
+_ESC = chr(27)
+_ANSI_ESCAPE = re.compile(re.escape(_ESC) + r"(\[[0-9;?]*[ -/]*[@-~]|\][^\a]*(\a|" + re.escape(_ESC) + r"\\))")
 
 
 def classify_outcome(result: CallResult) -> tuple[str, str, str]:
@@ -82,6 +102,18 @@ def classify_outcome(result: CallResult) -> tuple[str, str, str]:
         return (ERROR_LEAK, "medium", "unhandled exception / stack trace in response")
     if any(marker in text for marker in _SQL_ERRORS):
         return (SQL_ERROR, "medium", "raw database error surfaced to the caller")
+    if any(p.search(text) for p in _OUTPUT_INJECTION):
+        return (
+            OUTPUT_INJECTION,
+            "high",
+            "tool output contains model-directed instructions (result-side injection)",
+        )
+    if _ANSI_ESCAPE.search(text):
+        return (
+            OUTPUT_INJECTION,
+            "medium",
+            "tool output contains ANSI/terminal escape sequences (client-rendering injection)",
+        )
 
     if result.is_error:
         return (REJECTED, "info", "server returned an error result (input rejected)")

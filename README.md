@@ -170,7 +170,7 @@ Decisions are emitted in the detections event schema, so blocking at runtime and
 Where the analyzer reads a tool definition statically, the [fuzzer/](fuzzer/) drives a locally-run server with adversarial inputs at scale. `mcp-witness-fuzz -- <server command>` captures `tools/list`, then uses the classifier to aim payloads by parameter role:
 
 - **SSRF** payloads at `url`/`host` params, **traversal** at `path`, **injection** at `command`/`query`, plus **type-confusion**, **boundary** (empty / 100k / control bytes / unicode), and **protocol** malformations for every tool.
-- An **oracle** classifies each response: `crash`, `hang`, `sensitive-read`, `ssrf-hit`, `command-injection`, `error-leak`, `sql-error`, or a clean `rejected` (not a finding). Findings are deduplicated and severity-ranked.
+- An **oracle** classifies each response: `crash`, `hang`, `sensitive-read`, `ssrf-hit`, `command-injection`, `error-leak`, `sql-error`, `output-injection` (model-directed prose or terminal escapes in a tool result), or a clean `rejected` (not a finding). Findings are deduplicated and severity-ranked.
 
 Fuzz servers you run yourself, disclose responsibly, and confirm each finding manually before it becomes a report or CVE request. The payloads, oracle, and engine are unit-tested against an in-process vulnerable server that exhibits every bug class, with a well-behaved tool proving no false positives. See [fuzzer/README.md](fuzzer/README.md).
 

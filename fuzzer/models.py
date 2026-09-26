@@ -13,6 +13,7 @@ SENSITIVE_READ = "sensitive-read"
 SSRF_HIT = "ssrf-hit"
 COMMAND_INJECTION = "command-injection"
 SQL_ERROR = "sql-error"
+OUTPUT_INJECTION = "output-injection"
 REJECTED = "rejected"
 OK = "ok"
 

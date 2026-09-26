@@ -34,8 +34,9 @@ an extra unknown argument).
 Each response is classified: `crash`, `hang`, `sensitive-read` (e.g.
 `/etc/passwd` content came back), `ssrf-hit` (cloud-metadata content),
 `command-injection` (shell output reflected), `error-leak` (a stack trace in
-the response), `sql-error` (raw database error), `rejected` (clean validation,
-**not** a finding), or `ok`. Findings are deduplicated by (tool, category,
+the response), `sql-error` (raw database error), `output-injection`
+(model-directed prose or terminal escapes in a tool result), `rejected` (clean
+validation, **not** a finding), or `ok`. Findings are deduplicated by (tool, category,
 outcome).
 
 ## Use it
