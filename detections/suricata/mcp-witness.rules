@@ -1,0 +1,33 @@
+# mcp-witness Suricata/Snort-style signatures
+#
+# Network-layer counterparts to the Sigma rules in ../sigma/. These cover the
+# two disclosed classes at the wire: outbound SSRF to cloud metadata, and the
+# inbound cross-origin/DNS-rebind drive against a local MCP server.
+#
+# SIDs use the local range 9000000-9000099. Tune $HOME_NET and the MCP port
+# list ($MCP_PORTS, default the common HTTP-transport ports) for your network.
+# Validate structure with `python -m detections.validate --lint-suricata`;
+# validate against live traffic with `make validate-suricata` (needs Suricata).
+
+# --- Outbound SSRF: cloud instance-metadata service (IMDS) -------------------
+alert http $HOME_NET any -> 169.254.169.254 any (msg:"MCP-WITNESS SSRF outbound HTTP to cloud IMDS 169.254.169.254"; flow:established,to_server; classtype:attempted-recon; reference:url,desledishant10.github.io/mcp-witness/docs/ssrf-mcp-server-fetch; metadata:cwe 918; sid:9000001; rev:1;)
+
+alert http $HOME_NET any -> any any (msg:"MCP-WITNESS SSRF AWS IAM credential metadata path"; flow:established,to_server; http.uri; content:"/latest/meta-data/iam/security-credentials"; nocase; classtype:credential-theft; metadata:cwe 918; sid:9000002; rev:1;)
+
+alert http $HOME_NET any -> any any (msg:"MCP-WITNESS SSRF GCP service-account token path"; flow:established,to_server; http.uri; content:"/computeMetadata/v1/instance/service-accounts"; nocase; classtype:credential-theft; metadata:cwe 918; sid:9000003; rev:1;)
+
+alert http $HOME_NET any -> any any (msg:"MCP-WITNESS SSRF Azure managed-identity token path"; flow:established,to_server; http.uri; content:"/metadata/identity/oauth2/token"; nocase; classtype:credential-theft; metadata:cwe 918; sid:9000004; rev:1;)
+
+# --- Inbound rebind/cross-origin: external Origin driving a local MCP server --
+# Fires on an inbound HTTP request to an MCP port whose Origin header is not a
+# localhost origin. The pcre negative lookahead is the server-side rebind
+# signature (missing Origin validation), independent of browser rebind timing.
+alert http any any -> $HOME_NET $MCP_PORTS (msg:"MCP-WITNESS external Origin driving local MCP server (rebind/cross-origin)"; flow:established,to_server; http.header; pcre:"/^Origin:\s*https?:\/\/(?!(localhost|127\.0\.0\.1|\[::1\])(:\d+)?\b)/Hmi"; classtype:web-application-attack; reference:url,desledishant10.github.io/mcp-witness/docs/dns-rebinding-http-mcp-servers; metadata:cwe 346; sid:9000010; rev:1;)
+
+alert http any any -> $HOME_NET $MCP_PORTS (msg:"MCP-WITNESS external Host header on request to local MCP server (rebind/cross-origin)"; flow:established,to_server; http.header; pcre:"/^Host:\s*(?!(localhost|127\.0\.0\.1|\[::1\])(:\d+)?\s*$)/Hmi"; classtype:web-application-attack; reference:url,desledishant10.github.io/mcp-witness/docs/dns-rebinding-http-mcp-servers; metadata:cwe 346; sid:9000011; rev:1;)
+
+# --- DNS side of a rebind (best effort; engine-version dependent) -------------
+# Matching the resolved A-record IP in a DNS answer is not portable across
+# Suricata versions. The inbound Origin rule (9000010) is the robust server-side
+# detection; the Sigma rule ../sigma/mcp_dns_rebind_answer.yml covers the DNS
+# answer from resolver logs where the answer IP and TTL are structured fields.

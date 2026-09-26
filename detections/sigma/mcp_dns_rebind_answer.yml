@@ -1,0 +1,48 @@
+title: DNS rebinding answer (public name resolving to a private IP, low TTL)
+id: 9a2f7d64-3c18-4b0a-bf51-8d6c1a4e7f22
+status: experimental
+description: >
+  Detects the DNS side of a rebinding attack: an externally-resolvable name
+  answered with a loopback or private-range IP at a short TTL. This is the
+  delivery vector for the inbound MCP class mcp-witness disclosed across four
+  HTTP-transport servers. A browser is pinned to a public origin, then the
+  attacker flips the record to 127.0.0.1 so the page's same-origin requests
+  land on the victim's local MCP port. The low-TTL constraint (Chromium
+  enforces a ~60s minimum DNS cache) separates a real rebind from ordinary
+  split-horizon DNS.
+references:
+  - https://desledishant10.github.io/mcp-witness/docs/dns-rebinding-http-mcp-servers
+  - https://cwe.mitre.org/data/definitions/350.html
+author: Dishant Desle (mcp-witness)
+date: 2026-09-26
+tags:
+  - attack.command-and-control
+  - attack.t1071.004   # Application Layer Protocol: DNS
+  - cwe.350
+logsource:
+  category: dns
+  definition: >
+    Resolver or passive-DNS answer logs. Fields: query, answer_ip, ttl.
+detection:
+  answer_is_private:
+    answer_ip|cidr:
+      - '127.0.0.0/8'
+      - '10.0.0.0/8'
+      - '172.16.0.0/12'
+      - '192.168.0.0/16'
+      - '169.254.0.0/16'
+  low_ttl:
+    ttl|lte: 60
+  filter_internal_names:
+    query|endswith:
+      - '.internal'
+      - '.local'
+      - '.lan'
+      - '.localhost'
+      - '.home.arpa'
+  condition: answer_is_private and low_ttl and not filter_internal_names
+falsepositives:
+  - Split-horizon or internal DNS that legitimately maps a private name to a
+    private IP. The internal-suffix filter removes the common cases; add your
+    own internal zones to it.
+level: high

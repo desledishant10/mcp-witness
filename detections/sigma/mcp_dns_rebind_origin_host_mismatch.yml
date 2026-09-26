@@ -1,0 +1,45 @@
+title: External origin driving a local MCP server (cross-origin / rebind)
+id: 4b7e1c9a-6d2f-4e83-a0b5-7c9d3e2a1f08
+status: experimental
+description: >
+  Detects an inbound HTTP request to a loopback-bound MCP server that carries
+  an Origin header from a non-local web origin. A correctly configured local
+  MCP server only ever sees requests from a local client with no cross-site
+  Origin, or from an allowlisted local origin. An Origin such as
+  https://attacker.example on a request that lands on 127.0.0.1 is the
+  server-side signature of the DNS-rebinding / drive-by class mcp-witness
+  disclosed: the missing Origin and Host validation that lets any visited web
+  page drive the operator's local MCP tools. This fires on the missing-check
+  itself and does not depend on winning the browser rebind timing.
+references:
+  - https://desledishant10.github.io/mcp-witness/docs/dns-rebinding-http-mcp-servers
+  - https://cwe.mitre.org/data/definitions/346.html
+author: Dishant Desle (mcp-witness)
+date: 2026-09-26
+tags:
+  - attack.initial-access
+  - attack.t1189   # Drive-by Compromise
+  - cwe.346
+logsource:
+  category: webserver
+  definition: >
+    Access logs from the MCP HTTP transport, or mcp-witness inbound adapter
+    output. Fields: dst_ip, dst_port, http_host, origin, method, uri.
+detection:
+  to_local_mcp:
+    dst_ip|cidr:
+      - '127.0.0.0/8'
+      - '::1/128'
+  origin_present:
+    origin|re: '\S'
+  local_origin:
+    origin|re: '^https?://(localhost|127\.0\.0\.1|\[::1\])(:\d+)?/?$'
+  host_present:
+    http_host|re: '\S'
+  local_host:
+    http_host|re: '^(localhost|127\.0\.0\.1|\[::1\])(:\d+)?$'
+  condition: to_local_mcp and ( (origin_present and not local_origin) or (host_present and not local_host) )
+falsepositives:
+  - A local web app that is a legitimate cross-origin client of the MCP server.
+    Add its exact origin to an allowlist filter before deploying.
+level: high

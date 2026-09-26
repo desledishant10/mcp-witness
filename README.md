@@ -96,6 +96,7 @@ Two real findings on the official Anthropic reference server, surfaced from one 
 | `mcp-witness-lint-scenarios` | YAML lint for scenario files (catches null-byte smuggling, parse errors, schema violations) |
 | `mcp-witness-test` | Run a dynamic scenario against a real MCP server, optionally with a real LLM agent |
 | `mcp-witness-disclose` | **Coordinated-disclosure helper.** Scaffold new disclosure records, track day-count milestones (`status`), render day-appropriate follow-up bodies (`ping`) |
+| `mcp-witness-detect` | **Detection validator.** Run the defender signatures against the fixtures and prove each fires on its attack and stays quiet on benign traffic |
 
 ### Static analyzer rules (14 of 14 v0.1 rules implemented)
 
@@ -142,6 +143,14 @@ Two modes auto-selected per scenario:
 - **Proxy mode** — harness mediates between an agent under test and the real target, applying mutations to tool descriptions and outputs in flight. Used for agent-side scenarios (description injection, rug pull, output injection).
 
 Two agent driver implementations: `stub` (deterministic, plumbing tests) and `anthropic` (real Claude tool-use loop). See [harness/README.md](harness/README.md).
+
+### Detections (defender signatures)
+
+The offensive half of this repo shows how MCP servers break; [detections/](detections/) is the other half. Each disclosed class is paired with defender signatures anchored to a finding that was proven end to end, not to a hypothesis:
+
+- **Sigma** rules (portable, convert with pySigma) for the SSRF-to-metadata, SSRF-to-internal, DNS-rebind-answer, and inbound Origin/Host-mismatch signatures, each carrying CWE + MITRE ATT&CK tags.
+- **Suricata** network signatures (SIDs 9000001+) for the same classes.
+- A **self-contained validator** (`mcp-witness-detect`) that runs every rule against attack and benign fixtures and fails on a single miss or false positive, plus `make validate-live` which runs the real `poc/` probes and matches their actual output. See [detections/README.md](detections/README.md).
 
 ## Architecture
 

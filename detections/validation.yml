@@ -1,0 +1,30 @@
+# Ground truth for detection validation.
+#
+# For each event fixture in fixtures/events.jsonl, `expected` lists exactly the
+# rules (by filename stem in sigma/) that must fire on it. Any rule that fires
+# on a fixture NOT listed here is a false positive and fails validation; any
+# listed rule that does NOT fire is a miss and fails validation. Benign
+# fixtures map to an empty list, so a single stray match breaks the build.
+
+expected:
+  ssrf_imds_aws:
+    - mcp_ssrf_imds_credential_egress
+    - mcp_ssrf_reserved_ip_egress
+  ssrf_gcp_token:
+    - mcp_ssrf_imds_credential_egress
+    - mcp_ssrf_reserved_ip_egress
+  ssrf_internal_db:
+    - mcp_ssrf_reserved_ip_egress
+  dns_rebind_answer:
+    - mcp_dns_rebind_answer
+  dns_rebind_answer_private:
+    - mcp_dns_rebind_answer
+  inbound_external_origin:
+    - mcp_dns_rebind_origin_host_mismatch
+  inbound_external_host:
+    - mcp_dns_rebind_origin_host_mismatch
+  benign_public_fetch: []
+  benign_local_client: []
+  benign_no_origin: []
+  benign_internal_dns: []
+  benign_split_horizon_highttl: []

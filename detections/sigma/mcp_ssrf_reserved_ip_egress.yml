@@ -1,0 +1,46 @@
+title: MCP fetch tool reaching a reserved or private IP (SSRF to internal)
+id: 1e8b4c22-5a90-4d3c-9c77-4a0e2f7b6d34
+status: experimental
+description: >
+  Detects an MCP fetch-family tool making an outbound request whose
+  destination resolves into a reserved or private IP range (RFC 1918,
+  loopback, link-local, unique-local IPv6). This is the general SSRF primitive
+  behind the mcp-witness disclosures: a URL-fetching tool with no scheme or
+  IP-class validation will reach internal services (databases, admin panels,
+  in-cluster APIs) that have no IMDSv2-style host mitigation. It complements
+  the IMDS-specific rule with defence in depth for the internal-service case.
+references:
+  - https://desledishant10.github.io/mcp-witness/docs/ssrf-mcp-server-fetch
+  - https://cwe.mitre.org/data/definitions/918.html
+author: Dishant Desle (mcp-witness)
+date: 2026-09-26
+tags:
+  - attack.discovery
+  - attack.t1135   # Network Share Discovery / internal reach (closest ATT&CK anchor)
+  - cwe.918
+logsource:
+  category: proxy
+  definition: >
+    Egress HTTP logs for hosts running MCP servers, or mcp-witness egress
+    adapter output. Fields: app, dst_ip, uri, http_method.
+detection:
+  fetch_tool:
+    app|contains:
+      - 'mcp-server-fetch'
+      - 'mcp-server-http-request'
+      - 'streamablehttp'
+      - 'fetch'
+  reserved_destination:
+    dst_ip|cidr:
+      - '127.0.0.0/8'
+      - '10.0.0.0/8'
+      - '172.16.0.0/12'
+      - '192.168.0.0/16'
+      - '169.254.0.0/16'
+      - '::1/128'
+      - 'fc00::/7'
+  condition: fetch_tool and reserved_destination
+falsepositives:
+  - An MCP fetch tool intentionally configured to reach an internal service on
+    an explicit allowlist. Tune by excluding the approved internal hosts.
+level: high
