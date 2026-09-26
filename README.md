@@ -161,6 +161,8 @@ Detections catch attacks after the fact; the [guardrail/](guardrail/) proxy enfo
 - **SSRF egress block** — a `tools/call` whose URL argument resolves to a reserved address (link-local IMDS, RFC1918, loopback) is refused with a JSON-RPC error before it reaches the server, so the credential fetch never happens. Hostnames are resolved first, catching `metadata.google.internal` and rebind flips.
 - **Tool rug-pull block** — each tool definition is pinned on first sight; if a later `tools/list` changes it (the `MCP-D-004` mutate-after-approval vector), the tool is flagged and calls to it are refused.
 
+For HTTP-transport servers it also ships **inbound Origin/Host middleware** (ASGI / WSGI / aiohttp) that returns 403 to cross-origin drive-by requests — the defensive fix for the DNS-rebind class, covering the inbound direction the stdio proxy does not.
+
 Decisions are emitted in the detections event schema, so blocking at runtime and detecting in the SIEM share one shape. `block` and `monitor` modes; the whole decision path is unit-tested and an end-to-end test proves an SSRF call is stopped before a real server subprocess can leak. See [guardrail/README.md](guardrail/README.md).
 
 ### Fuzzer (find new bugs)

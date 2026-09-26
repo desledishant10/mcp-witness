@@ -4,6 +4,10 @@ All notable changes to mcp-witness. Format roughly follows [Keep a Changelog](ht
 
 ## [Unreleased] — main branch
 
+### Added
+
+- **Guardrail v2: inbound Origin/Host enforcement for HTTP-transport servers** (`guardrail/http_origin.py`). Completes the guardrail to both transport directions: the stdio proxy guards outbound tool calls, and this guards the inbound side that the DNS-rebinding class exploits. `OriginHostPolicy` is a pure decision (localhost allowed by default, explicit allowlists, block/monitor modes) wrapped as drop-in middleware for the three stacks the disclosed packages use: `OriginGuardASGI` (Starlette / FastAPI), `OriginGuardWSGI` (Flask), and an `aiohttp_origin_guard` factory. A blocked request gets a 403 and a decision event in the detections webserver schema, matching the `mcp_dns_rebind_origin_host_mismatch` rule. 12 tests including ASGI/WSGI middleware exercised end to end.
+
 ### Fixed
 
 - **Fuzzer oracle no longer false-positives on echoed URLs.** A wider fuzzing run against real published servers (`mcp-server-git`, `mcp-server-file-finder`, `mcp-server-http-request`) showed the SSRF oracle firing on failed outbound fetches: a fetch tool that fails to reach a host echoes the requested URL in its error, and the oracle matched IMDS *path* substrings (`computeMetadata`, `security-credentials`) inside that echoed URL. The oracle now matches only credential/metadata *response-body* markers (`AccessKeyId`, `SecretAccessKey`, …) and skips the SSRF check entirely when the response carries a transport-failure signature (`ConnectError`, `connection attempts failed`, …). This removed 5 of 6 false findings against `mcp-server-http-request`; the remaining one is a low-confidence `hang` inherent to fuzzing a network tool with a short per-call timeout.

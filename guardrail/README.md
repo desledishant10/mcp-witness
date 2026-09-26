@@ -45,7 +45,35 @@ policy.py        GuardrailPolicy: SSRF check, rug-pull pin/compare, Decision
 interceptor.py   pure client-request / server-response interception
 proxy.py         stdio transport (pump_* functions + StdioGuardrailProxy)
 cli.py           mcp-witness-guardrail entry point
+http_origin.py   inbound Origin/Host enforcement (ASGI / WSGI / aiohttp)
 ```
+
+## Inbound Origin/Host guard (HTTP transport)
+
+The stdio proxy above guards outbound calls. For HTTP-transport servers there is
+an inbound direction too: the DNS-rebinding class this repo disclosed comes from
+servers that do not validate the `Origin` and `Host` headers, so any web page an
+operator visits can drive their local MCP tools. `http_origin.py` is the fix the
+disclosure writeup recommends, as drop-in middleware for the three stacks the
+affected packages use. Localhost origins/hosts are allowed by default; add an
+allowlist for a legitimate cross-origin local app.
+
+```python
+from guardrail import OriginHostPolicy, OriginGuardASGI, OriginGuardWSGI, aiohttp_origin_guard
+
+# Starlette / FastAPI (ASGI)
+app = OriginGuardASGI(app, OriginHostPolicy())
+
+# Flask (WSGI)
+app.wsgi_app = OriginGuardWSGI(app.wsgi_app, OriginHostPolicy())
+
+# aiohttp
+web.Application(middlewares=[aiohttp_origin_guard(OriginHostPolicy())])
+```
+
+A blocked request gets a 403; decisions carry the same detections webserver-schema
+event as the `mcp_dns_rebind_origin_host_mismatch` rule, so the runtime block and
+the detection describe one thing.
 
 The policy and interceptor are pure and hold no I/O, so the whole decision path
 is unit-tested; the `pump_*` functions are tested over byte-line iterators; and
@@ -60,8 +88,8 @@ make demo        # block an SSRF call through the proxy, no external server
 ## Scope and honesty
 
 This is defense in depth, not a substitute for fixing the server. It reduces the
-blast radius of a URL-fetching tool and catches tool mutation, but an operator
-should still run a patched server and set IMDSv2 to Required. v1 covers the
-stdio transport; the inbound HTTP-transport Origin/Host enforcement (the other
-half of the DNS-rebind class) is a natural next addition and is already covered
-on the detection side by the Suricata and Sigma rules in `../detections/`.
+blast radius of a URL-fetching tool, catches tool mutation, and rejects
+cross-origin drive-by requests, but an operator should still run a patched
+server and set IMDSv2 to Required. The guardrail now covers both transport
+directions: outbound tool calls on the stdio proxy, and inbound Origin/Host on
+the HTTP middleware, matching the two classes in `../detections/`.

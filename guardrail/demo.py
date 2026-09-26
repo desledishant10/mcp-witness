@@ -1,13 +1,15 @@
 """A no-dependency demo of the guardrail policy decisions.
 
-Runs a safe call, an SSRF call, and a tool "rug pull" through the policy and
-prints what the proxy would do with each. No server or network needed.
+Runs a safe call, an SSRF call, a tool "rug pull", and an inbound Origin/Host
+check through the policies and prints what the guardrail would do with each. No
+server or network needed.
 
     python -m guardrail.demo
 """
 
 from __future__ import annotations
 
+from guardrail.http_origin import OriginHostPolicy
 from guardrail.policy import GuardrailPolicy
 
 IMDS = "http://169.254.169.254/latest/meta-data/iam/security-credentials/role/"
@@ -33,6 +35,16 @@ def main() -> int:
     print(f"  mutated tools/list -> {changed[0].action.upper()} {changed[0].reason}")
     after = policy.check_tool_call("search", {"q": "hi"})
     print(f"  call after mutation -> {after.action.upper()} {after.reason}")
+
+    print("\n== inbound Origin/Host guard (HTTP transport) ==")
+    origin_policy = OriginHostPolicy()
+    for label, origin, host in [
+        ("local client", "http://localhost:3000", "localhost:3000"),
+        ("rebind / drive-by", "https://attacker.example", "localhost:3000"),
+        ("hostile Host", "http://localhost:3000", "attacker.example"),
+    ]:
+        d = origin_policy.check(origin, host)
+        print(f"  {label:18} -> {d.action.upper():5} {d.reason or 'forwarded to server'}")
     return 0
 
 

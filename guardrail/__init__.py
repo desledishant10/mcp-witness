@@ -13,6 +13,19 @@ Every decision is emitted as a structured event compatible with the detections
 event schema, so blocking at runtime and detecting in the SIEM share one shape.
 """
 
+from guardrail.http_origin import (
+    OriginGuardASGI,
+    OriginGuardWSGI,
+    OriginHostPolicy,
+    aiohttp_origin_guard,
+)
 from guardrail.policy import Decision, GuardrailPolicy
 
-__all__ = ["Decision", "GuardrailPolicy"]
+__all__ = [
+    "Decision",
+    "GuardrailPolicy",
+    "OriginHostPolicy",
+    "OriginGuardASGI",
+    "OriginGuardWSGI",
+    "aiohttp_origin_guard",
+]
