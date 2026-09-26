@@ -27,12 +27,29 @@ _PASSWD = re.compile(r"root:.*?:0:0:", re.DOTALL)
 _ID_OUTPUT = re.compile(r"uid=\d+\([^)]*\)\s+gid=\d+")
 _TRACEBACK = re.compile(r"Traceback \(most recent call last\)|File \"[^\"]+\", line \d+, in ")
 _WIN_INI = "[extensions]"
+# Credential/metadata *body* markers only. Path components like
+# "security-credentials" or "computeMetadata" are excluded on purpose: a failed
+# fetch echoes the requested URL, and matching a path substring there produced
+# false SSRF hits. These markers appear in a metadata *response body*, not a URL.
 _IMDS_MARKERS = (
-    "security-credentials",
     "AccessKeyId",
     "SecretAccessKey",
-    "ami-id",
-    "computeMetadata",
+    "aws_secret_access_key",
+    '"ami-id"',
+    '"instance-id"',
+)
+# Signatures that the outbound request failed, so any URL echoed back is not a
+# leak. Matched case-insensitively.
+_REQUEST_FAILED = (
+    "connecterror",
+    "failed to make",
+    "failed to fetch",
+    "connection attempts failed",
+    "connection refused",
+    "nodename nor servname",
+    "name or service not known",
+    "no route to host",
+    "max retries exceeded",
 )
 _SQL_ERRORS = (
     "sqlite3.OperationalError",
@@ -51,6 +68,7 @@ def classify_outcome(result: CallResult) -> tuple[str, str, str]:
         return (HANG, "high", "server did not respond within the timeout")
 
     text = result.text or ""
+    request_failed = any(sig in text.lower() for sig in _REQUEST_FAILED)
 
     if _ID_OUTPUT.search(text):
         return (COMMAND_INJECTION, "high", "shell command output (id) reflected in response")
@@ -58,7 +76,7 @@ def classify_outcome(result: CallResult) -> tuple[str, str, str]:
         return (SENSITIVE_READ, "high", "/etc/passwd content returned")
     if _WIN_INI in text:
         return (SENSITIVE_READ, "high", "Windows win.ini content returned")
-    if any(marker in text for marker in _IMDS_MARKERS):
+    if not request_failed and any(marker in text for marker in _IMDS_MARKERS):
         return (SSRF_HIT, "high", "cloud instance-metadata content returned")
     if _TRACEBACK.search(text):
         return (ERROR_LEAK, "medium", "unhandled exception / stack trace in response")

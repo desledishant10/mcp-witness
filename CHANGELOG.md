@@ -4,7 +4,9 @@ All notable changes to mcp-witness. Format roughly follows [Keep a Changelog](ht
 
 ## [Unreleased] — main branch
 
-_Nothing yet._
+### Fixed
+
+- **Fuzzer oracle no longer false-positives on echoed URLs.** A wider fuzzing run against real published servers (`mcp-server-git`, `mcp-server-file-finder`, `mcp-server-http-request`) showed the SSRF oracle firing on failed outbound fetches: a fetch tool that fails to reach a host echoes the requested URL in its error, and the oracle matched IMDS *path* substrings (`computeMetadata`, `security-credentials`) inside that echoed URL. The oracle now matches only credential/metadata *response-body* markers (`AccessKeyId`, `SecretAccessKey`, …) and skips the SSRF check entirely when the response carries a transport-failure signature (`ConnectError`, `connection attempts failed`, …). This removed 5 of 6 false findings against `mcp-server-http-request`; the remaining one is a low-confidence `hang` inherent to fuzzing a network tool with a short per-call timeout.
 
 ## [0.3.0] — 2026-09-26
 

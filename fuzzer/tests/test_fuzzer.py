@@ -74,6 +74,24 @@ def test_clean_rejection_is_not_a_finding():
     assert outcome == "rejected" and severity == "info"
 
 
+def test_ssrf_oracle_ignores_echoed_url_on_failed_fetch():
+    # A failed outbound fetch echoes the requested IMDS URL; that is NOT a leak.
+    failed = CallResult(
+        text="Failed to make GET request to "
+        "http://metadata.google.internal/computeMetadata/v1/: ConnectError('unreachable')"
+    )
+    assert classify_outcome(failed)[0] != "ssrf-hit"
+    # A path component echoed in an error message no longer triggers a hit.
+    echoed = CallResult(
+        text="error: could not reach "
+        "http://169.254.169.254/latest/meta-data/iam/security-credentials/"
+    )
+    assert classify_outcome(echoed)[0] != "ssrf-hit"
+    # A real metadata response body still fires.
+    real = CallResult(text='{"AccessKeyId":"ASIAEXAMPLE","SecretAccessKey":"redacted"}')
+    assert classify_outcome(real)[0] == "ssrf-hit"
+
+
 # --------------------------------------------------------------------------- #
 # Engine end to end against the in-process vulnerable server
 # --------------------------------------------------------------------------- #
