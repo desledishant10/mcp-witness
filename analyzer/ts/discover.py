@@ -15,6 +15,7 @@ from dataclasses import dataclass
 from analyzer.ts import treesitter_utils as ts
 
 _REGISTER_CALLS = {"tool", "registerTool"}
+_PROMPT_CALLS = {"prompt", "registerPrompt"}
 
 
 @dataclass
@@ -34,12 +35,12 @@ def discover_tools_in_ts(src: bytes, path: str, language: str) -> list[TSTool]:
     return discover_tools_from_tree(ts.parse(src, language), src, path)
 
 
-def discover_tools_from_tree(tree, src: bytes, path: str) -> list[TSTool]:
-    tools: list[TSTool] = []
+def _discover_registrations(tree, src: bytes, path: str, call_names: set[str]) -> list[TSTool]:
+    found: list[TSTool] = []
     for node in ts.walk(tree.root_node):
         if node.type != "call_expression":
             continue
-        if ts.call_base_name(node, src) not in _REGISTER_CALLS:
+        if ts.call_base_name(node, src) not in call_names:
             continue
         args = ts.call_args(node)
         if not args:
@@ -49,7 +50,7 @@ def discover_tools_from_tree(tree, src: bytes, path: str) -> list[TSTool]:
         if name is None or handler is None:
             continue
         description = ts.string_value(args[1], src) if len(args) > 1 else None
-        tools.append(
+        found.append(
             TSTool(
                 name=name,
                 description=description,
@@ -59,4 +60,12 @@ def discover_tools_from_tree(tree, src: bytes, path: str) -> list[TSTool]:
                 line=node.start_point[0] + 1,
             )
         )
-    return tools
+    return found
+
+
+def discover_tools_from_tree(tree, src: bytes, path: str) -> list[TSTool]:
+    return _discover_registrations(tree, src, path, _REGISTER_CALLS)
+
+
+def discover_prompts_from_tree(tree, src: bytes, path: str) -> list[TSTool]:
+    return _discover_registrations(tree, src, path, _PROMPT_CALLS)

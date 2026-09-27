@@ -5,8 +5,8 @@ from __future__ import annotations
 from pathlib import Path
 
 from analyzer.ts import treesitter_utils as ts
-from analyzer.ts.discover import discover_tools_from_tree
-from analyzer.ts.rules import TS_FILE_RULES, TS_RULES
+from analyzer.ts.discover import discover_prompts_from_tree, discover_tools_from_tree
+from analyzer.ts.rules import TS_FILE_RULES, TS_PROMPT_RULES, TS_RULES
 from analyzer.types import Finding
 
 _SKIP_DIRS = {"node_modules", ".git", "dist", "build", ".venv", "coverage", ".next"}
@@ -20,6 +20,9 @@ def analyze_ts_source(src: bytes, path: str, language: str) -> list[Finding]:
     for tool in discover_tools_from_tree(tree, src, path):
         for rule in TS_RULES:
             findings.extend(rule(tool))
+    for prompt in discover_prompts_from_tree(tree, src, path):
+        for rule in TS_PROMPT_RULES:
+            findings.extend(rule(prompt))
     return findings
 
 

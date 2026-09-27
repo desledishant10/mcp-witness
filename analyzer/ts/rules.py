@@ -77,14 +77,16 @@ def _tool_finding(rule_id, severity, category, tool: TSTool, node, message) -> F
     )
 
 
-def _file_finding(rule_id, severity, category, path, node, src, message) -> Finding:
+def _file_finding(
+    rule_id, severity, category, path, node, src, message, tool_name="<transport>"
+) -> Finding:
     return Finding(
         rule_id=rule_id,
         severity=severity,
         category=category,
         file=path,
         line=node.start_point[0] + 1,
-        tool_name="<transport>",
+        tool_name=tool_name,
         message=message,
         evidence=ts.node_text(node, src)[:160],
     )
@@ -309,5 +311,120 @@ def check_transport_origin_ts(root, src: bytes, path: str) -> list[Finding]:
     return findings
 
 
+# --------------------------------------------------------------------------- #
+# S-013 prompt template injection (per-prompt)
+# --------------------------------------------------------------------------- #
+_FLAGGED_PROMPT_ROLES = {"system", "assistant"}
+_INTERP_CALLS = {"replace", "format", "concat", "join"}
+
+
+def _content_interpolates_param(content, params: set[str], src: bytes) -> bool:
+    """A prompt param reaches the content through a string construction:
+    a template `${param}`, `+` concatenation, or a replace/format/concat/join."""
+    for node in ts.walk(content):
+        if node.type == "template_substitution" and ts.subtree_references(node, params, src):
+            return True
+        if (
+            node.type == "binary_expression"
+            and ts.binary_operator(node, src) == "+"
+            and ts.subtree_references(node, params, src)
+        ):
+            return True
+        if (
+            node.type == "call_expression"
+            and ts.call_base_name(node, src) in _INTERP_CALLS
+            and ts.subtree_references(node, params, src)
+        ):
+            return True
+    return False
+
+
+def check_prompt_injection_ts(prompt: TSTool) -> list[Finding]:
+    """MCP-S-013 — a prompt argument is interpolated into a non-user (system /
+    assistant) message. High for system/assistant, medium for other non-user
+    roles; user-role messages are skipped."""
+    params = ts.handler_param_names(prompt.handler, prompt.source)
+    findings: list[Finding] = []
+    seen: set[int] = set()
+    for node in ts.walk(prompt.handler):
+        if node.type != "object":
+            continue
+        props = ts.object_properties(node, prompt.source)
+        if "role" not in props or "content" not in props:
+            continue
+        role = ts.string_value(props["role"], prompt.source)
+        if role == "user":
+            continue
+        content = props["content"]
+        if content.type == "object":  # unwrap { type: "text", text: … }
+            inner = ts.object_properties(content, prompt.source)
+            content = inner.get("text", content)
+        if not _content_interpolates_param(content, params, prompt.source):
+            continue
+        line = node.start_point[0] + 1
+        if line in seen:
+            continue
+        seen.add(line)
+        findings.append(
+            _tool_finding(
+                "MCP-S-013",
+                "high" if role in _FLAGGED_PROMPT_ROLES else "medium",
+                "prompt.template_injection",
+                prompt,
+                node,
+                f"Prompt argument interpolated into a '{role or 'non-user'}' message — "
+                "user-controlled text reaches an instruction-bearing role.",
+            )
+        )
+    return findings
+
+
+# --------------------------------------------------------------------------- #
+# S-012 roots declared but never consulted (file-level)
+# --------------------------------------------------------------------------- #
+def _find_roots_capability_node(root, src: bytes):
+    for node in ts.walk(root):
+        if node.type != "pair":
+            continue
+        key = node.child_by_field_name("key")
+        if key is None or ts.node_text(key, src).strip("\"'") != "capabilities":
+            continue
+        value = node.child_by_field_name("value")
+        if (
+            value is not None
+            and value.type == "object"
+            and "roots" in ts.object_properties(value, src)
+        ):
+            return node
+    return None
+
+
+def _file_calls_list_roots(root, src: bytes) -> bool:
+    return any(
+        node.type == "call_expression" and ts.call_base_name(node, src) == "listRoots"
+        for node in ts.walk(root)
+    )
+
+
+def check_roots_declared_unused_ts(root, src: bytes, path: str) -> list[Finding]:
+    node = _find_roots_capability_node(root, src)
+    if node is None or _file_calls_list_roots(root, src):
+        return []
+    return [
+        _file_finding(
+            "MCP-S-012",
+            "medium",
+            "capability.roots_declared_unused",
+            path,
+            node,
+            src,
+            "The server declares the roots capability but never calls listRoots(), so the "
+            "declared filesystem-containment guarantee is not enforced.",
+            tool_name="<server>",
+        )
+    ]
+
+
 TS_RULES = [check_command_injection_ts, check_path_traversal_ts, check_sensitive_logging_ts]
-TS_FILE_RULES = [check_transport_origin_ts]
+TS_PROMPT_RULES = [check_prompt_injection_ts]
+TS_FILE_RULES = [check_transport_origin_ts, check_roots_declared_unused_ts]

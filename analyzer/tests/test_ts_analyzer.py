@@ -18,6 +18,8 @@ from analyzer.ts.discover import discover_tools_in_ts  # noqa: E402
 
 FIXTURE = Path(__file__).parent / "fixtures" / "example_server.ts"
 TRANSPORT_FIXTURE = Path(__file__).parent / "fixtures" / "example_transport.ts"
+PROMPT_FIXTURE = Path(__file__).parent / "fixtures" / "example_prompt.ts"
+ROOTS_FIXTURE = Path(__file__).parent / "fixtures" / "example_roots.ts"
 
 
 def _tools_for_rule(findings, rule_id):
@@ -132,3 +134,50 @@ def test_transport_protection_and_header_read_suppress():
 def test_localhost_bind_not_flagged():
     src = b'app.listen(3000, "127.0.0.1");'
     assert not any(f.rule_id == "MCP-S-014" for f in analyze_ts_source(src, "t.ts", "typescript"))
+
+
+# --- S-013 prompt template injection ----------------------------------------
+def test_prompt_injection_flagged_system_only_once():
+    findings = [f for f in analyze_path(PROMPT_FIXTURE) if f.rule_id == "MCP-S-013"]
+    assert len(findings) == 1  # only the 'expert' system message; user-role + safe skipped
+    finding = findings[0]
+    assert finding.tool_name == "expert"
+    assert finding.severity == "high"
+    assert finding.category == "prompt.template_injection"
+
+
+def test_prompt_concat_interpolation_into_assistant_is_high():
+    src = (
+        b'server.prompt("p", {name:1}, async ({name}) => ({ messages: ['
+        b' { role: "assistant", content: "hi " + name } ] }));'
+    )
+    findings = analyze_ts_source(src, "p.ts", "typescript")
+    assert any(f.rule_id == "MCP-S-013" and f.severity == "high" for f in findings)
+
+
+def test_prompt_constant_and_user_role_not_flagged():
+    src = (
+        b'server.prompt("p", {name:1}, async ({name}) => ({ messages: ['
+        b' { role: "system", content: "constant instructions" },'
+        b' { role: "user", content: `hello ${name}` } ] }));'
+    )
+    assert not any(f.rule_id == "MCP-S-013" for f in analyze_ts_source(src, "p.ts", "typescript"))
+
+
+# --- S-012 roots declared but unused ----------------------------------------
+def test_roots_declared_unused_flagged():
+    findings = [f for f in analyze_path(ROOTS_FIXTURE) if f.rule_id == "MCP-S-012"]
+    assert len(findings) == 1
+    assert findings[0].severity == "medium"
+    assert findings[0].tool_name == "<server>"
+    assert findings[0].category == "capability.roots_declared_unused"
+
+
+def test_roots_consulted_not_flagged():
+    src = b"const s = new Server({}, { capabilities: { roots: {} } }); s.listRoots();"
+    assert not any(f.rule_id == "MCP-S-012" for f in analyze_ts_source(src, "s.ts", "typescript"))
+
+
+def test_no_roots_capability_not_flagged():
+    src = b"const s = new Server({}, { capabilities: { tools: {} } });"
+    assert not any(f.rule_id == "MCP-S-012" for f in analyze_ts_source(src, "s.ts", "typescript"))

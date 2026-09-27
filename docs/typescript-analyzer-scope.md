@@ -1,6 +1,6 @@
 # Scope: a TypeScript analyzer for mcp-witness
 
-**Status:** **Phases 1–2 implemented (2026-09-26)** — `analyzer/ts/` ships the tree-sitter front-end plus S-006, S-007 (Phase 1) and S-011, S-014 (Phase 2); see the Phasing section. Phase 3 (S-013, S-012) remains. **Why:** the static analyzer was Python-only (AST-based), but a large share of published MCP servers are TypeScript/Node. A TS analyzer roughly doubles the tool's real-world reach.
+**Status:** **Complete (2026-09-26)** — `analyzer/ts/` ships the tree-sitter front-end and all six source rules: S-006, S-007 (Phase 1), S-011, S-014 (Phase 2), and S-013, S-012 (Phase 3). Together with the definition- and file-based rules that already worked cross-language, the analyzer now has full TS parity. The Node/TS-compiler precision backend noted below remains an optional future upgrade. **Why:** the static analyzer was Python-only (AST-based), but a large share of published MCP servers are TypeScript/Node. A TS analyzer roughly doubles the tool's real-world reach.
 
 ## The key insight: most of the work is already done
 

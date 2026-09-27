@@ -115,3 +115,21 @@ def subtree_references(node, names: set[str], src: bytes) -> bool:
     """True if any identifier in the subtree is one of ``names`` (lightweight
     taint: does this expression use a handler parameter)."""
     return any(n.type == "identifier" and node_text(n, src) in names for n in walk(node))
+
+
+def object_properties(obj_node, src: bytes) -> dict[str, object]:
+    """Map an object literal's key names to their value nodes.
+    ``{ role: "system", content: x }`` -> {"role": <node>, "content": <node>}."""
+    props: dict[str, object] = {}
+    for child in obj_node.named_children:
+        if child.type == "pair":
+            key = child.child_by_field_name("key")
+            value = child.child_by_field_name("value")
+            if key is not None and value is not None:
+                props[node_text(key, src).strip("\"'")] = value
+    return props
+
+
+def binary_operator(node, src: bytes) -> str | None:
+    op = node.child_by_field_name("operator")
+    return node_text(op, src) if op is not None else None
