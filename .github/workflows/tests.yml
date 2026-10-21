@@ -67,7 +67,7 @@ jobs:
         run: twine check dist/*
       - name: Verify console scripts in wheel
         run: |
-          unzip -p dist/mcp-witness-*.whl mcp-witness-*.dist-info/entry_points.txt | grep -q '^mcp-witness-audit = harness.audit:main'
+          unzip -p dist/mcp?witness-*.whl mcp?witness-*.dist-info/entry_points.txt | grep -q '^mcp-witness-audit = harness.audit:main'
           echo "Entry points OK"
       - name: Upload distribution artifacts
         uses: actions/upload-artifact@v4
