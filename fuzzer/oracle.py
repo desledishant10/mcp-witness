@@ -66,7 +66,9 @@ _SQL_ERRORS = (
 _OUTPUT_INJECTION = (
     re.compile(r"\b(ignore|disregard|forget)\s+(all\s+)?(previous|prior|above|earlier)\b", re.I),
     re.compile(r"\byou\s+(must|should|shall|will|now|are\s+required\s+to)\b", re.I),
-    re.compile(r"\b(do\s+not|don'?t|never)\s+(tell|inform|mention|reveal|show)\s+the\s+user\b", re.I),
+    re.compile(
+        r"\b(do\s+not|don'?t|never)\s+(tell|inform|mention|reveal|show)\s+the\s+user\b", re.I
+    ),
     re.compile(r"\bnew\s+(instructions?|system\s+prompt|directive)\b", re.I),
     re.compile(r"^\s*(system|assistant)\s*:", re.I | re.M),
     re.compile(r"</?(system|important|instructions?)>", re.I),
@@ -77,7 +79,9 @@ _OUTPUT_INJECTION = (
 # or have text hidden from the operator. ESC built via chr(27) to keep raw
 # control bytes out of source.
 _ESC = chr(27)
-_ANSI_ESCAPE = re.compile(re.escape(_ESC) + r"(\[[0-9;?]*[ -/]*[@-~]|\][^\a]*(\a|" + re.escape(_ESC) + r"\\))")
+_ANSI_ESCAPE = re.compile(
+    re.escape(_ESC) + r"(\[[0-9;?]*[ -/]*[@-~]|\][^\a]*(\a|" + re.escape(_ESC) + r"\\))"
+)
 
 
 def classify_outcome(result: CallResult) -> tuple[str, str, str]:

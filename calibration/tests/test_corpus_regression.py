@@ -61,11 +61,8 @@ def test_per_tag_precision_meets_spec(aggregate):
             continue  # no positives predicted; not a precision case
         if m.precision < SPEC_MIN_PRECISION:
             failing.append((tag, m.precision, m.true_pos, m.false_pos))
-    assert not failing, (
-        f"tags below {SPEC_MIN_PRECISION:.2f} precision spec floor:\n"
-        + "\n".join(
-            f"  {tag}: precision={p:.2f} (tp={tp}, fp={fp})" for tag, p, tp, fp in failing
-        )
+    assert not failing, f"tags below {SPEC_MIN_PRECISION:.2f} precision spec floor:\n" + "\n".join(
+        f"  {tag}: precision={p:.2f} (tp={tp}, fp={fp})" for tag, p, tp, fp in failing
     )
 
 
@@ -76,11 +73,8 @@ def test_per_tag_recall_meets_spec(aggregate):
             continue  # no ground-truth positives; not a recall case
         if m.recall < SPEC_MIN_RECALL:
             failing.append((tag, m.recall, m.true_pos, m.false_neg))
-    assert not failing, (
-        f"tags below {SPEC_MIN_RECALL:.2f} recall spec floor:\n"
-        + "\n".join(
-            f"  {tag}: recall={r:.2f} (tp={tp}, fn={fn})" for tag, r, tp, fn in failing
-        )
+    assert not failing, f"tags below {SPEC_MIN_RECALL:.2f} recall spec floor:\n" + "\n".join(
+        f"  {tag}: recall={r:.2f} (tp={tp}, fn={fn})" for tag, r, tp, fn in failing
     )
 
 
@@ -119,7 +113,6 @@ def test_no_zero_recall_tags(aggregate):
     for tag, m in sorted(aggregate.by_tag.items()):
         if (m.true_pos + m.false_neg) > 0 and m.true_pos == 0:
             broken.append((tag, m.false_neg))
-    assert not broken, (
-        "tags with ground-truth positives but zero true positives:\n"
-        + "\n".join(f"  {tag}: fn={fn}, no detections at all" for tag, fn in broken)
+    assert not broken, "tags with ground-truth positives but zero true positives:\n" + "\n".join(
+        f"  {tag}: fn={fn}, no detections at all" for tag, fn in broken
     )

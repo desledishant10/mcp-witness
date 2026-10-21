@@ -46,9 +46,7 @@ class IMDSHandler(BaseHTTPRequestHandler):
         path = self.path.rstrip("/")
 
         if path == "/latest/meta-data":
-            self._respond_text(
-                "ami-id\nhostname\niam/\ninstance-id\ninstance-type\nlocal-ipv4\n"
-            )
+            self._respond_text("ami-id\nhostname\niam/\ninstance-id\ninstance-type\nlocal-ipv4\n")
         elif path == "/latest/meta-data/iam":
             self._respond_text("security-credentials/\n")
         elif path == "/latest/meta-data/iam/security-credentials":
