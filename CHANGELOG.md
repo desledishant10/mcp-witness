@@ -4,6 +4,10 @@ All notable changes to mcp-witness. Format roughly follows [Keep a Changelog](ht
 
 ## [Unreleased] — main branch
 
+## [0.3.1] — 2026-10-21
+
+The first PyPI release since 0.3.0: ships everything that had landed on main (the full TypeScript analyzer, MCP-S-015, guardrail v2, fuzzer output-injection) plus a dependency-pinning fix that restores reproducible, green builds. No behavior change to any rule or module.
+
 ### Added
 
 - **TypeScript analyzer Phase 3 — prompt + roots rules (source-rule parity).** Adds **MCP-S-013 (prompt template injection)** — discovers `server.prompt(...)` / `server.registerPrompt(...)` handlers and flags a prompt argument interpolated (template `${…}`, `+` concatenation, or `.replace`/`.format`/`.concat`/`.join`) into a non-user message; `high` for `system`/`assistant`, `medium` otherwise, `user`-role messages skipped — and **MCP-S-012 (roots declared but never consulted)** — a server declaring `capabilities: { roots }` with no `listRoots()` call anywhere (AST-checked, so a mention in a comment does not suppress it), `medium`, `tool_name` `<server>`. With Phases 1–2 the TS front-end now implements all six source rules (S-006, S-007, S-011, S-012, S-013, S-014) at parity with Python; 8 more tests + `example_prompt.ts` and `example_roots.ts` fixtures.
@@ -15,6 +19,7 @@ All notable changes to mcp-witness. Format roughly follows [Keep a Changelog](ht
 
 ### Fixed
 
+- **Pinned `mcp<2` and `ruff==0.14.3` to restore reproducible builds.** The runtime dep was an unbounded `mcp>=1.0`; mcp 2.x shipped as a breaking major that removed `Server.list_tools` and changed the stdio client's task-group semantics, so every harness/fuzzer/guardrail stdio path (and 10 tests) broke under a fresh install, including from PyPI. Capping to `mcp>=1.0,<2` holds the tool to the 1.x API it was built and tested against. Separately, an unbounded `ruff>=0.4` dev pin drifted to 0.17.x, whose formatter reflowed 8 files and broke `ruff format --check`; ruff is now pinned exactly and the tree reformatted to it (whitespace-only).
 - **Fuzzer oracle no longer false-positives on echoed URLs.** A wider fuzzing run against real published servers (`mcp-server-git`, `mcp-server-file-finder`, `mcp-server-http-request`) showed the SSRF oracle firing on failed outbound fetches: a fetch tool that fails to reach a host echoes the requested URL in its error, and the oracle matched IMDS *path* substrings (`computeMetadata`, `security-credentials`) inside that echoed URL. The oracle now matches only credential/metadata *response-body* markers (`AccessKeyId`, `SecretAccessKey`, …) and skips the SSRF check entirely when the response carries a transport-failure signature (`ConnectError`, `connection attempts failed`, …). This removed 5 of 6 false findings against `mcp-server-http-request`; the remaining one is a low-confidence `hang` inherent to fuzzing a network tool with a short per-call timeout.
 
 ## [0.3.0] — 2026-09-26
