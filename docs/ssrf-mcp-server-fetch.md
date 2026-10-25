@@ -9,7 +9,7 @@ description: "A coordinated disclosure of outbound SSRF in mcp-server-fetch: pro
 
 I build a security scanner for Model Context Protocol servers. One of the first things it flagged was Anthropic's own reference server. I proved the finding on a real EC2 instance with live IAM credentials, filed a coordinated disclosure, and an external contributor opened a clean fix ten days later. I verified that fix against the same demo that had leaked the credentials. As of today, four months after I filed, the issue is closed as "not planned," the fix PR is still open with green CI and no approving review, and the vulnerable code has kept shipping to PyPI. The patch has never merged, so no release can carry it. The version you install today still runs the same unguarded fetch path I reported.
 
-This is the whole arc, start to finish. The way it ended is more instructive than the bug itself, so I am going to tell all of it.
+This is the whole arc, start to finish. The way it ended is more instructive than the bug itself, so I am going to tell all of it. This SSRF is one of two classes I found across six packages; the cross-cutting view is in [the transport-layer synthesis](https://desledishant10.github.io/mcp-witness/docs/mcp-transport-layer-blind-spot).
 
 ## The flag
 

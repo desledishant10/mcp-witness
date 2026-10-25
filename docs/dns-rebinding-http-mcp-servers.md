@@ -11,7 +11,7 @@ Four PyPI-published Python MCP servers. Three maintainer teams who have never sp
 
 I want to be precise about the framing, because it is the whole point. This is not four bugs. It is one wrong assumption at the MCP transport layer, instantiated four times by people working independently. That is the kind of thing a scanner is supposed to surface: not a bug but a pattern.
 
-This piece is the inbound companion to [my writeup on the outbound SSRF](https://desledishant10.github.io/mcp-witness/docs/ssrf-mcp-server-fetch) in `mcp-server-fetch`. SSRF is the server reaching out to an attacker-chosen URL. DNS rebinding is a browser reaching in to attacker-chosen tools. What makes the inbound class worse to sit with is the trigger. SSRF needs an agent and usually a prompt injection to steer it. DNS rebinding needs neither. The operator visits a web page. That is the entire attack.
+This piece is the inbound companion to [my writeup on the outbound SSRF](https://desledishant10.github.io/mcp-witness/docs/ssrf-mcp-server-fetch) in `mcp-server-fetch`. SSRF is the server reaching out to an attacker-chosen URL. DNS rebinding is a browser reaching in to attacker-chosen tools. What makes the inbound class worse to sit with is the trigger. SSRF needs an agent and usually a prompt injection to steer it. DNS rebinding needs neither. The operator visits a web page. That is the entire attack. Both classes, and the single root cause they share, are drawn together in [the transport-layer synthesis](https://desledishant10.github.io/mcp-witness/docs/mcp-transport-layer-blind-spot).
 
 ## The mechanism
 
