@@ -21,16 +21,44 @@ from .runner import Target
 async def capture(target: Target) -> dict:
     async with TracedMCPClient(target.command, target.args, target.env) as client:
         result = await client.list_tools()
-    return {
-        "tools": [
-            {
-                "name": t.name,
-                "description": t.description or "",
-                "inputSchema": t.inputSchema or {"type": "object", "properties": {}},
-            }
-            for t in result.tools
-        ]
+    return {"tools": [_serialize_tool(t) for t in result.tools]}
+
+
+def _serialize_tool(t) -> dict:
+    """Serialize one SDK Tool to the captured JSON shape.
+
+    Carries `annotations` through as a sibling of `inputSchema`, matching
+    the real tools/list response, so MCP-S-004 can compare a declared
+    `readOnlyHint` / `destructiveHint` against the tool's actual behavior.
+    Most servers set no annotations, so the key is omitted when absent
+    rather than written as an empty object.
+    """
+    out = {
+        "name": t.name,
+        "description": t.description or "",
+        "inputSchema": t.inputSchema or {"type": "object", "properties": {}},
     }
+    ann = _annotations_dict(getattr(t, "annotations", None))
+    if ann:
+        out["annotations"] = ann
+    return out
+
+
+def _annotations_dict(annotations) -> dict:
+    """Best-effort conversion of an SDK ToolAnnotations object to a plain dict,
+    dropping None-valued hints. Never raises: a malformed or unexpected
+    annotations object must not abort the whole capture, so any failure just
+    yields no annotations for that tool."""
+    if annotations is None:
+        return {}
+    try:
+        # ToolAnnotations is a pydantic model on the SDK Tool; fall back to
+        # dict() for anything that already behaves like a mapping.
+        if hasattr(annotations, "model_dump"):
+            return annotations.model_dump(exclude_none=True)
+        return {k: v for k, v in dict(annotations).items() if v is not None}
+    except (TypeError, ValueError):
+        return {}
 
 
 def main() -> int:

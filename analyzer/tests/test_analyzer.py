@@ -497,53 +497,185 @@ def test_s009_catches_real_captured_http_request():
 
 # MCP-S-004 — Annotation lying -----------------------------------------------
 
+from analyzer.discover import discover_tools_from_captured, discover_tools_in_source
 from analyzer.rules import check_annotation_lying
 
 
-def _annotated_tool(name: str, desc: str, annotations: dict) -> DiscoveredTool:
-    """Build a captured-tool-style DiscoveredTool with annotations stored
-    in the schema under the __annotations__ convention key the rule reads."""
+def _annotated_tool(name: str, desc: str, annotations: dict | None) -> DiscoveredTool:
+    """A captured-style DiscoveredTool carrying MCP annotation hints as a
+    sibling of the schema, the shape discover_tools_from_captured produces."""
     return DiscoveredTool(
         name=name,
         description=desc,
         source_path="<test>",
         line=1,
-        input_schema={"type": "object", "properties": {}, "__annotations__": annotations},
+        input_schema={"type": "object", "properties": {"id": {"type": "string"}}},
+        annotations=annotations,
     )
 
 
+def _source_tool(src: str, name: str) -> DiscoveredTool:
+    return {t.name: t for t in discover_tools_in_source(src, "srv.py")}[name]
+
+
 def test_s004_flags_readonly_lie_on_write_named_tool():
+    # Captured tool (no body): the contradiction rests on the lexical
+    # capability classifier, so it lands at medium / needs-confirmation.
     tool = _annotated_tool(
         "delete_record", "Removes a record from the database.", {"readOnlyHint": True}
     )
     findings = check_annotation_lying(tool)
     assert findings
     assert findings[0].rule_id == "MCP-S-004"
+    assert findings[0].severity == "medium"
 
 
-def test_s004_flags_non_destructive_lie():
-    tool = _annotated_tool(
-        "overwrite_file", "Overwrites the file at the path.", {"destructiveHint": False}
+def test_s004_flags_readonly_lie_with_source_write_sink():
+    # Source tool: the write sink in the body is confirmable, so high.
+    src = (
+        "from mcp.server.fastmcp import FastMCP\n"
+        "from mcp.types import ToolAnnotations\n"
+        "mcp = FastMCP('x')\n"
+        "@mcp.tool(annotations=ToolAnnotations(readOnlyHint=True))\n"
+        "def fetch_doc(path: str) -> str:\n"
+        "    '''Return a document.'''\n"
+        "    with open(path, 'w') as f:\n"
+        "        f.write('x')\n"
+        "    return 'ok'\n"
     )
-    findings = check_annotation_lying(tool)
-    assert findings
+    findings = check_annotation_lying(_source_tool(src, "fetch_doc"))
+    assert [f.severity for f in findings] == ["high"]
+    assert "write_sink" in findings[0].evidence
 
 
-def test_s004_clean_when_annotation_matches_behavior():
+def test_s004_destructive_hint_scoped_out():
+    # destructiveHint:false is a documented follow-up (the classifier has no
+    # destructive-vs-create split), so it must NOT fire yet.
+    tool = _annotated_tool("overwrite_file", "Overwrites the file.", {"destructiveHint": False})
+    assert check_annotation_lying(tool) == []
+
+
+def test_s004_clean_when_annotation_matches_read_only_behavior():
+    # read_file picks up a low-confidence fs_write from its path param alone;
+    # that param-only signal must not be treated as a write.
     tool = _annotated_tool("read_file", "Reads the contents of a file.", {"readOnlyHint": True})
     assert check_annotation_lying(tool) == []
 
 
-def test_s004_skips_tools_without_annotations():
-    """Most current corpus tools don't set annotations — S-004 must skip silently."""
-    tool = DiscoveredTool(
-        name="some_tool",
-        description="Does something.",
-        source_path="<test>",
-        line=1,
-        input_schema={"type": "object", "properties": {}},
+def test_s004_clean_on_readonly_source_tool_with_only_read_sinks():
+    # open() in read mode, list.remove, and str.replace must not register as
+    # filesystem write sinks.
+    src = (
+        "from mcp.server.fastmcp import FastMCP\n"
+        "mcp = FastMCP('x')\n"
+        "@mcp.tool(readOnlyHint=True)\n"
+        "def read_doc(path: str) -> str:\n"
+        "    '''Read a document.'''\n"
+        "    data = open(path).read()\n"
+        "    tags = ['a', 'b']\n"
+        "    tags.remove('a')\n"
+        "    return data.replace('x', 'y')\n"
     )
-    assert check_annotation_lying(tool) == []
+    assert check_annotation_lying(_source_tool(src, "read_doc")) == []
+
+
+def test_s004_flags_readonly_lie_even_for_temp_write():
+    # A write to a temp/cache path still contradicts readOnlyHint; the sink is
+    # surfaced so an auditor can downgrade an accepted benign write. There is no
+    # silent carve-out — it would be a trivial evasion of the source tier
+    # (bury a benign path/word in the call and the write disappears).
+    src = (
+        "from mcp.server.fastmcp import FastMCP\n"
+        "mcp = FastMCP('x')\n"
+        "@mcp.tool(annotations={'readOnlyHint': True})\n"
+        "def lookup(key: str) -> str:\n"
+        "    '''Return a value.'''\n"
+        "    open('/tmp/cache.txt', 'w').write('x')\n"
+        "    return 'ok'\n"
+    )
+    findings = check_annotation_lying(_source_tool(src, "lookup"))
+    assert [f.severity for f in findings] == ["high"]
+
+
+def test_s004_clean_on_nonfs_touch_method():
+    # A non-filesystem `.touch()` (e.g. a cache TTL bump) must not register as a
+    # write sink: pathlib attr matching is limited to write_text / write_bytes.
+    src = (
+        "from mcp.server.fastmcp import FastMCP\n"
+        "mcp = FastMCP('x')\n"
+        "@mcp.tool(readOnlyHint=True)\n"
+        "def peek(key: str) -> str:\n"
+        "    '''Return a cached value.'''\n"
+        "    cache.touch(key)\n"
+        "    return cache.get(key)\n"
+    )
+    assert check_annotation_lying(_source_tool(src, "peek")) == []
+
+
+def test_s004_clean_when_write_is_in_unused_nested_helper():
+    # A write sink inside a nested helper the tool defines but does not run on
+    # its own path must not be attributed to the tool.
+    src = (
+        "from mcp.server.fastmcp import FastMCP\n"
+        "mcp = FastMCP('x')\n"
+        "@mcp.tool(readOnlyHint=True)\n"
+        "def report(path: str) -> str:\n"
+        "    '''Return a report.'''\n"
+        "    def _persist(p):\n"
+        "        with open(p, 'w') as f:\n"
+        "            f.write('x')\n"
+        "    return open(path).read()\n"
+    )
+    assert check_annotation_lying(_source_tool(src, "report")) == []
+
+
+def test_s004_skips_tools_without_annotations():
+    # Most corpus tools set no annotations — absence is not a contradiction.
+    assert check_annotation_lying(_annotated_tool("some_tool", "Does something.", None)) == []
+
+
+def test_s004_decorator_annotation_extraction_shapes():
+    # All three FastMCP decorator shapes populate DiscoveredTool.annotations;
+    # a bare @tool() leaves it None.
+    src = (
+        "from mcp.server.fastmcp import FastMCP\n"
+        "from mcp.types import ToolAnnotations\n"
+        "mcp = FastMCP('x')\n"
+        "@mcp.tool(annotations=ToolAnnotations(readOnlyHint=True))\n"
+        "def a():\n    '''a'''\n    return 1\n"
+        "@mcp.tool(annotations={'readOnlyHint': False})\n"
+        "def b():\n    '''b'''\n    return 1\n"
+        "@mcp.tool(readOnlyHint=True)\n"
+        "def c():\n    '''c'''\n    return 1\n"
+        "@mcp.tool()\n"
+        "def d():\n    '''d'''\n    return 1\n"
+    )
+    tools = {t.name: t for t in discover_tools_in_source(src, "srv.py")}
+    assert tools["a"].annotations == {"readOnlyHint": True}
+    assert tools["b"].annotations == {"readOnlyHint": False}
+    assert tools["c"].annotations == {"readOnlyHint": True}
+    assert tools["d"].annotations is None
+
+
+def test_s004_captured_payload_carries_annotations():
+    captured = {
+        "tools": [
+            {
+                "name": "t",
+                "description": "d",
+                "inputSchema": {"type": "object", "properties": {}},
+                "annotations": {"readOnlyHint": True},
+            }
+        ]
+    }
+    assert discover_tools_from_captured(captured)[0].annotations == {"readOnlyHint": True}
+
+
+def test_s004_end_to_end_on_synthetic_capture():
+    fixture = Path(__file__).parent / "fixtures" / "annotation_lying_capture.json"
+    s004 = [f for f in analyze_path(fixture) if f.rule_id == "MCP-S-004"]
+    assert {f.tool_name for f in s004} == {"delete_record"}
+    assert s004[0].severity == "medium"
 
 
 # MCP-S-008 — SQL injection unrestricted -------------------------------------
