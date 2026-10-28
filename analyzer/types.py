@@ -28,6 +28,13 @@ class DiscoveredTool:
     source-discovered tools; None for captured tools). `input_schema` is
     the JSON Schema dict (for captured tools; possibly None for
     source-discovered tools where we haven't extracted it).
+
+    `annotations` holds the MCP tool annotation hints (`readOnlyHint`,
+    `destructiveHint`, `idempotentHint`, `openWorldHint`) when the server
+    declares them — carried through from `tools/list` for captured tools
+    and from the `@tool(...)` decorator for source tools. None/absent when
+    the server sets no annotations, which is the common case. Consumed by
+    MCP-S-004.
     """
 
     name: str
@@ -37,3 +44,4 @@ class DiscoveredTool:
     function_node: Any = None
     parameters: list[str] = field(default_factory=list)
     input_schema: dict | None = None
+    annotations: dict | None = None

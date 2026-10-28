@@ -40,7 +40,8 @@ def discover_tools_in_source(source: str, path: str) -> list[DiscoveredTool]:
     tools: list[DiscoveredTool] = []
     for node in ast.walk(tree):
         if isinstance(node, ast.FunctionDef | ast.AsyncFunctionDef):
-            if any(_is_tool_decorator(d) for d in node.decorator_list):
+            tool_decorators = [d for d in node.decorator_list if _is_tool_decorator(d)]
+            if tool_decorators:
                 tools.append(
                     DiscoveredTool(
                         name=node.name,
@@ -49,6 +50,7 @@ def discover_tools_in_source(source: str, path: str) -> list[DiscoveredTool]:
                         line=node.lineno,
                         function_node=node,
                         parameters=[a.arg for a in node.args.args if a.arg != "self"],
+                        annotations=_decorator_annotations(tool_decorators[0]),
                     )
                 )
     return tools
@@ -63,6 +65,68 @@ def _is_tool_decorator(dec) -> bool:
     return False
 
 
+# MCP annotation hint keys. Only these are lifted off the decorator; other
+# decorator kwargs (name, description, ...) are ignored here.
+_ANNOTATION_HINT_KEYS = {
+    "readOnlyHint",
+    "destructiveHint",
+    "idempotentHint",
+    "openWorldHint",
+}
+
+
+def _decorator_annotations(dec) -> dict | None:
+    """Extract MCP annotation hints declared on a `@...tool(...)` decorator.
+
+    Handles the shapes a FastMCP server actually uses:
+    - `@mcp.tool(annotations=ToolAnnotations(readOnlyHint=True))`
+    - `@mcp.tool(annotations={"readOnlyHint": True})`
+    - `@mcp.tool(readOnlyHint=True)` (hint passed directly)
+
+    Only boolean-literal hint values are lifted; anything computed at
+    runtime is left out (we can't resolve it statically, and guessing
+    would risk a false annotation). Returns None when the decorator
+    declares no hints, so S-004 stays silent exactly as if the server set
+    no annotations.
+    """
+    if not isinstance(dec, ast.Call):
+        return None
+    hints: dict = {}
+    for kw in dec.keywords:
+        if kw.arg in _ANNOTATION_HINT_KEYS:
+            val = _bool_literal(kw.value)
+            if val is not None:
+                hints[kw.arg] = val
+        elif kw.arg == "annotations":
+            hints.update(_annotations_kwarg(kw.value))
+    return hints or None
+
+
+def _annotations_kwarg(value) -> dict:
+    """Pull boolean hint keys from an `annotations=` value that is either a
+    dict literal or a `ToolAnnotations(...)` call."""
+    hints: dict = {}
+    if isinstance(value, ast.Dict):
+        for k, v in zip(value.keys, value.values, strict=False):
+            if isinstance(k, ast.Constant) and k.value in _ANNOTATION_HINT_KEYS:
+                b = _bool_literal(v)
+                if b is not None:
+                    hints[k.value] = b
+    elif isinstance(value, ast.Call):
+        for kw in value.keywords:
+            if kw.arg in _ANNOTATION_HINT_KEYS:
+                b = _bool_literal(kw.value)
+                if b is not None:
+                    hints[kw.arg] = b
+    return hints
+
+
+def _bool_literal(node) -> bool | None:
+    if isinstance(node, ast.Constant) and isinstance(node.value, bool):
+        return node.value
+    return None
+
+
 def discover_tools_from_captured(captured: dict | list) -> list[DiscoveredTool]:
     """Build DiscoveredTool objects from a captured tools/list payload.
 
@@ -75,6 +139,7 @@ def discover_tools_from_captured(captured: dict | list) -> list[DiscoveredTool]:
     for t in captured.get("tools", []):
         schema = t.get("inputSchema") or t.get("input_schema") or {}
         params = list((schema.get("properties") or {}).keys())
+        annotations = t.get("annotations")
         tools.append(
             DiscoveredTool(
                 name=t.get("name", ""),
@@ -84,6 +149,7 @@ def discover_tools_from_captured(captured: dict | list) -> list[DiscoveredTool]:
                 function_node=None,
                 parameters=params,
                 input_schema=schema or None,
+                annotations=annotations if isinstance(annotations, dict) else None,
             )
         )
     return tools

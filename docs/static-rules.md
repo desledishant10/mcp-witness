@@ -62,13 +62,19 @@ def get_weather(city: str) -> str:
 **FP modes:** detailed parameter docs. Tuned by requiring stronger instruction signal than S-001.
 
 ### MCP-S-004 — Tool annotation contradicts inferred capability
-**Languages:** both. **Severity:** high. **Approach:** config.
+**Languages:** `py` for the source-confirmed tier; `both` for the lexical tier. **Severity:** high (source-confirmed) / medium (lexical). **Approach:** config + ast.
 
-**What:** Tool declares `annotations.readOnlyHint: true` or `destructiveHint: false`, but its name, description, or implementation indicates write/destructive behavior.
+**What:** A tool declares `annotations.readOnlyHint: true` but its implementation, name, or description indicates it writes or mutates state. The MCP spec (Data Types > Tool) says clients MUST treat tool annotations as untrusted unless they come from a trusted server, yet clients use `readOnlyHint` to decide whether a call can skip the human confirmation — so a tool that lies about being read-only is a silent-write primitive.
 
-**Detection:** keyword scan of name + description for `delete | remove | write | create | drop | update | send | post | execute`, plus a check on the implementation function for known write APIs (`open(..., "w")`, `os.remove`, `fs.writeFile`, network POST, `subprocess`). If found, contradiction with `readOnlyHint=true` is flagged.
+**Annotations are carried end to end:** from a captured `tools/list` payload (`annotations` as a sibling of `inputSchema`) and from the `@tool(...)` decorator on source tools (`annotations=ToolAnnotations(readOnlyHint=True)`, `annotations={...}`, or a direct `readOnlyHint=` kwarg). A tool that sets no `readOnlyHint` makes no claim and is never flagged — absence is not a contradiction, which keeps the rule silent on the current corpus (no captured server sets annotations).
 
-**FP modes:** tools that perform writes in a sandbox the user has accepted; mitigated by surfacing both signals in the report.
+**Detection, two tiers:**
+- **high** — the tool's own function body contains a filesystem write sink: `open(..., "w"|"a"|"x"|"+")`, `os.{remove,unlink,rename,replace,mkdir,...}`, `shutil.{move,rmtree,...}`, or `Path.{write_text,write_bytes}`. `os.*` / `shutil.*` are receiver-qualified so `list.remove` / `str.replace` cannot masquerade as sinks; the attribute-only pathlib set is limited to `write_text` / `write_bytes` so ambiguous names like `cache.touch` do not fire; `open()` without a write mode does not fire; and nested helper defs the tool merely declares are not descended into. Requires source in scope (`function_node`).
+- **medium** — no source body is available (captured tools, and TypeScript, which is a follow-up), so the contradiction rests on the capability classifier inferring a mutating capability (`fs_write` / `exec` / `db_write`) from the name or description. A capability inferred from a parameter role alone (e.g. a reader that merely takes a `path` arg) does not count. Labeled "needs confirmation".
+
+**Out of scope (tracked as follow-ups):** `destructiveHint: false` — the classifier's single `fs_write` tag lumps create and delete together, so there is no destructive signal to contradict it against; TypeScript write-sink detection; a dynamic harness scenario that confirms a `readOnlyHint` lie by observing a mutation against a sacrificial fixture.
+
+**FP modes:** a benign infrastructure write by an otherwise read-only tool (cache / temp / log file) still contradicts `readOnlyHint` and is flagged — there is deliberately no silent path-based carve-out, since scanning the call for a benign-looking literal is a trivial evasion of the source tier; instead the sink is surfaced in the finding so an auditor can downgrade an accepted benign write. Tools that write only inside a sandbox the user has accepted are the residual FP mode, mitigated the same way.
 
 ### MCP-S-005 — Overbroad capability surface
 **Languages:** both. **Severity:** medium. **Approach:** config.

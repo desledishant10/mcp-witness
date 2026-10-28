@@ -422,67 +422,219 @@ def check_url_fetch_unrestricted(tool: DiscoveredTool) -> list[Finding]:
 # MCP-S-004 — Tool annotation contradicts inferred capability
 # ---------------------------------------------------------------------------
 
-# Verb stems indicating write/destructive behavior. Stem-based with `\w*`
-# tail to absorb suffixes (-s, -ed, -ing, -er) and snake_case continuations
-# (e.g. `delete_record` matches via `\bdelet\w*\b`).
-_WRITE_INDICATING_WORDS = re.compile(
-    r"\b(writ|delet|remov|creat|drop|updat|modif|overwrit|"
-    r"insert|patch|edit|append|truncat|renam|mov|chmod|chown|"
-    r"send|sent|post|publish|commit|merg|push)\w*\b",
-    re.IGNORECASE,
-)
+# Classifier capability tags that mean the tool modifies state and therefore
+# contradict `readOnlyHint: true`. `net_egress` is deliberately excluded: an
+# HTTP POST is the normal transport for GraphQL / JSON-RPC *reads*, and
+# readOnlyHint is about environment modification, not the HTTP verb.
+_MUTATING_CAPABILITY_TAGS = {"fs_write", "exec", "db_write"}
+
+# Implementation-level filesystem write sinks. Presence of one in a tool's own
+# function body is source-confirmed evidence the tool writes.
+#
+# `os.<fn>` / `shutil.<fn>` match only when the receiver is that exact module,
+# so `list.remove(...)` or `df.rename(...)` can't masquerade as `os.remove` /
+# `os.rename`. `_PATHLIB_WRITE_ATTRS` is matched on the attribute alone, so it
+# is restricted to `write_text` / `write_bytes`, which are effectively never
+# non-filesystem methods; ambiguous names like `touch` / `unlink` / `mkdir`
+# (cf. `cache.touch(key)`, `queue.unlink()`) are deliberately left to the
+# receiver-qualified `os.*` branch rather than risk a false positive on the
+# high-severity tier. `open(...)` counts only with an explicit write mode; a
+# bare `open(path)` defaults to read and must not fire. Attribute `.open()` is
+# intentionally not matched: `io.open(file, mode)` takes mode in a different
+# position than `Path.open(mode)`, and a filename literal could be misread as a
+# mode. The trade is deliberate: a missed sink is a false negative (safe), a
+# mismatched attribute would be a false positive on the headline tier (not).
+_OS_WRITE_FUNCS = {
+    "remove",
+    "unlink",
+    "rename",
+    "renames",
+    "replace",
+    "mkdir",
+    "makedirs",
+    "rmdir",
+    "removedirs",
+    "truncate",
+    "link",
+    "symlink",
+    "chmod",
+    "chown",
+}
+_SHUTIL_WRITE_FUNCS = {
+    "copy",
+    "copy2",
+    "copyfile",
+    "copytree",
+    "copymode",
+    "copystat",
+    "move",
+    "rmtree",
+    "make_archive",
+    "unpack_archive",
+}
+_PATHLIB_WRITE_ATTRS = {"write_text", "write_bytes"}
+_WRITE_MODE_CHARS = ("w", "a", "x", "+")
 
 
 def check_annotation_lying(tool: DiscoveredTool) -> list[Finding]:
-    """MCP-S-004 — Tool annotation declares read-only / non-destructive
-    but name or description indicates the opposite.
+    """MCP-S-004 — a tool declares `readOnlyHint: true` but actually writes.
 
-    Reads `tool.input_schema` for annotations because the captured
-    representation tools/list returns has annotations alongside
-    description / inputSchema. Most servers in the wild don't set
-    annotations (only newer SDK adopters do), so this rule will be
-    silent on most corpora — but when it fires, it's high-signal: an
-    explicit lie about safety means either a maintainer mistake or
-    deliberate misdirection. Either deserves attention.
+    The MCP spec (Data Types > Tool) says clients MUST treat tool
+    annotations as untrusted unless they come from a trusted server, yet
+    several clients use `readOnlyHint` to decide whether a call can skip the
+    human confirmation. A tool advertising `readOnlyHint: true` while
+    mutating state is therefore a silent-write primitive; this rule flags
+    that contradiction. Two evidence tiers:
+
+    - **high** — the tool's own body contains a write sink (`open(..., "w")`,
+      `os.remove`, `Path.write_text`, ...). Available only when source is in
+      scope (`function_node` set), i.e. a source-tree scan with the hint
+      declared on the `@tool(...)` decorator.
+    - **medium** — no source body is available (captured tools carry none,
+      and the TypeScript source path is not wired here yet), so the
+      contradiction rests on the lexical capability classifier inferring a
+      mutating capability (`fs_write` / `exec` / `db_write`). Labeled "needs
+      confirmation".
+
+    Absent annotation is never a contradiction: a tool that sets no
+    `readOnlyHint` makes no claim, so the rule returns nothing. This keeps
+    S-004 silent on the current corpus, where no captured server sets
+    annotations at all.
+
+    `destructiveHint: false` is intentionally out of scope: the classifier's
+    single `fs_write` tag lumps create and delete together, so there is no
+    "destructive" signal to contradict it against. Tracked as follow-up; see
+    docs/static-rules.md (MCP-S-004).
     """
-    if not tool.input_schema:
-        return []
-    # In some captures the tool dict carries `annotations` as a sibling of
-    # `inputSchema` — but our DiscoveredTool only carries the schema. The
-    # MCP SDK puts annotations on the Tool object itself, accessible via
-    # the JSON-RPC response. For now, look for annotations stored inside
-    # the schema dict under a convention key, falling back to noop.
-    annotations = tool.input_schema.get("__annotations__") or {}
-    if not annotations:
+    annotations = tool.annotations or {}
+    if annotations.get("readOnlyHint") is not True:
         return []
 
-    read_only = annotations.get("readOnlyHint") is True
-    not_destructive = annotations.get("destructiveHint") is False
-    if not (read_only or not_destructive):
+    # Tier 1: source-confirmed write sink in the tool's own body.
+    sink = _first_write_sink(tool.function_node) if tool.function_node is not None else None
+    if sink is not None:
+        label, lineno = sink
+        return [
+            Finding(
+                rule_id="MCP-S-004",
+                severity="high",
+                category="tool.annotation_lying",
+                file=tool.source_path,
+                line=lineno,
+                tool_name=tool.name,
+                message=(
+                    f"Tool declares readOnlyHint=true but its implementation calls a "
+                    f"write sink ({label}). A client that skips confirmation for "
+                    f"read-only tools would apply this write silently."
+                ),
+                evidence=f"readOnlyHint=true; write_sink={label}",
+            )
+        ]
+
+    # Tier 2: lexical capability signal (no source body in scope).
+    from classifier import classify_tool  # local import; keep cold-path cost off hot rules
+
+    classification = classify_tool(
+        {
+            "name": tool.name,
+            "description": tool.description or "",
+            "inputSchema": tool.input_schema or {},
+        }
+    )
+    # Require the mutating signal to come from the name or description, not
+    # from a parameter role alone. `fs_write` lists `param_role: "path"`, so a
+    # pure reader like `read_file` (which has a `path` param) picks up a
+    # low-confidence `fs_write` on the parameter alone — that is not a write.
+    # Only name/description evidence (`name_token` / `name_combo` /
+    # `desc_pattern`) actually indicates the tool mutates state.
+    mutating = sorted(
+        {
+            c.tag
+            for c in classification.capabilities
+            if c.tag in _MUTATING_CAPABILITY_TAGS
+            and any(e.startswith(("name_", "desc_")) for e in c.evidence)
+        }
+    )
+    if not mutating:
         return []
 
-    haystack = f"{tool.name} {tool.description or ''}"
-    m = _WRITE_INDICATING_WORDS.search(haystack)
-    if not m:
-        return []
-
-    lie = "readOnlyHint=true" if read_only else "destructiveHint=false"
     return [
         Finding(
             rule_id="MCP-S-004",
-            severity="high",
+            severity="medium",
             category="tool.annotation_lying",
             file=tool.source_path,
             line=tool.line,
             tool_name=tool.name,
             message=(
-                f"Annotation {lie} contradicts inferred behavior. "
-                f"Name/description contains write-indicating verb {m.group(0)!r}, "
-                f"which suggests the tool is not read-only / not safe."
+                f"Tool declares readOnlyHint=true but its name/description/schema "
+                f"classify as a mutating capability ({', '.join(mutating)}). "
+                f"Needs confirmation against the implementation."
             ),
-            evidence=f"matched={m.group(0)!r} annotation={lie}",
+            evidence=f"readOnlyHint=true; inferred_capability={mutating}",
         )
     ]
+
+
+def _first_write_sink(fn) -> tuple[str, int] | None:
+    """Return (label, lineno) for the first filesystem write sink in the tool's
+    own body, or None. Nested function / lambda scopes the tool merely defines
+    are not descended into, so a sink in an unused inner helper is not
+    attributed to the tool."""
+    for node in _iter_own_scope(fn):
+        if isinstance(node, ast.Call):
+            label = _write_sink_label(node)
+            if label is not None:
+                return label, node.lineno
+    return None
+
+
+_NESTED_SCOPES = (ast.FunctionDef, ast.AsyncFunctionDef, ast.Lambda)
+
+
+def _iter_own_scope(fn):
+    """Yield nodes within `fn` without descending into nested function or
+    lambda bodies, so a sink in an inner helper the tool defines but does not
+    run on its own path is not mis-attributed to the tool."""
+    stack = [c for c in getattr(fn, "body", []) if not isinstance(c, _NESTED_SCOPES)]
+    while stack:
+        node = stack.pop()
+        yield node
+        for child in ast.iter_child_nodes(node):
+            if not isinstance(child, _NESTED_SCOPES):
+                stack.append(child)
+
+
+def _write_sink_label(call: ast.Call) -> str | None:
+    func = call.func
+    # open(path, "w") — builtin; mode is the 2nd positional arg or mode= kw.
+    if isinstance(func, ast.Name) and func.id == "open":
+        return "open(write mode)" if _has_write_mode(call, 1) else None
+    if isinstance(func, ast.Attribute):
+        attr = func.attr
+        recv = func.value
+        if isinstance(recv, ast.Name) and recv.id == "os" and attr in _OS_WRITE_FUNCS:
+            return f"os.{attr}"
+        if isinstance(recv, ast.Name) and recv.id == "shutil" and attr in _SHUTIL_WRITE_FUNCS:
+            return f"shutil.{attr}"
+        if attr in _PATHLIB_WRITE_ATTRS:
+            return attr
+    return None
+
+
+def _has_write_mode(call: ast.Call, mode_index: int) -> bool:
+    mode: str | None = None
+    if len(call.args) > mode_index:
+        a = call.args[mode_index]
+        if isinstance(a, ast.Constant) and isinstance(a.value, str):
+            mode = a.value
+    for kw in call.keywords:
+        if kw.arg == "mode" and isinstance(kw.value, ast.Constant):
+            if isinstance(kw.value.value, str):
+                mode = kw.value.value
+    if mode is None:
+        return False
+    return any(ch in mode for ch in _WRITE_MODE_CHARS)
 
 
 # ---------------------------------------------------------------------------
