@@ -175,6 +175,27 @@ If still silent at day +30 (2026-06-11), escalate via:
 
 If silent through 2026-08-10: publish per embargo, public writeup notes maintainer was notified 2026-05-12 + followed up 2026-06-02 with no response.
 
+Body as sent (quoted as provided by the sender):
+
+> Hi Esteban, Gavin,
+>
+> Just following up on the disclosure I sent 2026-05-12 for
+> mcp-server-http-request v0.1.0. Want to make sure it reached you.
+>
+> For context on timeline: the parallel disclosure on mcp-server-fetch
+> (modelcontextprotocol/servers#4143) had a fix PR submitted within 10
+> days and I independently verified the fix on 2026-05-22 — the SSRF
+> that previously exfiltrated IAM credentials now refuses cleanly. The
+> fix shape that worked there (scheme allowlist + RFC-reserved-range
+> host denylist + per-redirect validation) is the same one I suggested
+> for your package.
+>
+> Happy to discuss timeline, alternative remediation, or help implement
+> the fix. Original 90-day embargo remains 2026-08-10.
+>
+> Thanks,
+> Dishant
+
 ### 2026-05-22 — fix PR independently verified
 
 Same demo script that produced the IAM credential exfil on EC2 was re-run against the fix branch (`kgarg/harden-fetch-ssrf`), this time installed locally — sufficient because the new validation logic checks IP class *before* attempting the network request, so the refusal is observable without metadata reachability.

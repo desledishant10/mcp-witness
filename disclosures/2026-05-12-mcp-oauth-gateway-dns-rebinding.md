@@ -226,6 +226,33 @@ If still silent at day +30 (2026-06-11), escalate via:
 
 If silent through 2026-08-10: publish per embargo, public writeup notes maintainer was notified 2026-05-12 + followed up 2026-06-02 with no response.
 
+Body as sent (quoted as provided by the sender):
+
+> Hi Andreas,
+>
+> Following up on the DNS-rebinding disclosure I sent 2026-05-12 for
+> mcp-streamablehttp-proxy v0.2.0 and mcp-fetch-streamablehttp-server
+> v0.2.0. Want to confirm it reached you.
+>
+> For context on the timeline: the parallel SSRF disclosure on
+> mcp-server-fetch (modelcontextprotocol/servers#4143) had a fix PR
+> submitted within 10 days and was independently verified 2026-05-22.
+> The MCP-S-014 detector that surfaced your packages also caught two
+> false-negative classes during that verification work, both now
+> patched — happy to share what I learned about the detection landscape
+> if useful.
+>
+> The core suggested fix (Starlette TrustedHostMiddleware + Origin
+> allowlist on POST /mcp, plus changing the default bind from 0.0.0.0 to
+> 127.0.0.1 in mcp-fetch-streamablehttp-server) remains the
+> recommendation. Happy to review a candidate fix branch if you have one
+> in development.
+>
+> Original 90-day embargo remains 2026-08-10.
+>
+> Thanks,
+> Dishant
+
 ### 2026-05-12 — Email sent to maintainer
 
 Sent direct to `atrawog@gmail.com` (the Author-email from the `mcp-fetch-streamablehttp-server` PyPI metadata). The GitHub Security Advisory form was unavailable — `/security/advisories/new` returned 404, indicating the repo has not enabled private vulnerability reporting for outside reporters even though the Security tab is present in the nav. Email is the published-on-PyPI maintainer contact channel, and matches the precedent set by the `mcp-server-http-request` SSRF disclosure earlier the same day (also email-only).

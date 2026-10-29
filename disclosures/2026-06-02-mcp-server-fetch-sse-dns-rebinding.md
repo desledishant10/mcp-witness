@@ -186,4 +186,103 @@ Form populated successfully at the URL from `anthropic.com/.well-known/security.
 
 ### 2026-06-02 — Email sent to Jack Adamson
 
-Sent to `jadamson@anthropic.com` (the PyPI-listed maintainer-of-record). Subject: *"Security disclosure — mcp-server-fetch-sse v0.1.1 (DNS-rebinding + inherited SSRF)"*. Body matches the draft above verbatim (the "Primary email" section). The body references the parallel notification "via HackerOne" — at send time that was the active plan; the pivot to `disclosure@anthropic.com` happened shortly afterward. The mention is a minor inaccuracy in retrospect, but the substance (Anthropic Security is being notified in parallel) was preserved by the disclosure@ email. No follow-up correction to Jack was sent — the discrepancy is parenthetical and reaching out a second time would have added noise without value. Maintainer acknowledgement pending.
+Sent to `jadamson@anthropic.com` (the PyPI-listed maintainer-of-record). Subject: *"Security disclosure — mcp-server-fetch-sse v0.1.1 (DNS-rebinding + inherited SSRF)"*. Body is a lightly revised, more conversational version of the "Primary email" draft above (same substance, with an added third point flagging the broken `mcp.server.sse` import); the exact text as sent is recorded below under "Verbatim as-sent emails." The body references the parallel notification "via HackerOne" — at send time that was the active plan; the pivot to `disclosure@anthropic.com` happened shortly afterward. The mention is a minor inaccuracy in retrospect, but the substance (Anthropic Security is being notified in parallel) was preserved by the disclosure@ email. No follow-up correction to Jack was sent — the discrepancy is parenthetical and reaching out a second time would have added noise without value. Maintainer acknowledgement pending.
+
+---
+
+## Verbatim as-sent emails (recorded 2026-10-29)
+
+The sections above ("Primary email" and "Parallel HackerOne submission") are the pre-send drafts. Below are the two messages as actually sent, quoted as provided by the sender (pasted from the mail client, so a few em dashes did not survive the copy). They differ in wording from the drafts; this is the exact text that went out.
+
+### To jadamson@anthropic.com, 2026-06-03 (initial disclosure, as sent)
+
+> Hi Jack,
+>
+> I'm filing a security disclosure for mcp-server-fetch-sse v0.1.1 on PyPI. PyPI lists you as the maintainer, so you're my starting point. Heads up that I'm also sending a parallel notice to Anthropic Security via HackerOne only because the package metadata shows "Author: Anthropic, PBC." and the README is mostly upstream content, which might be inherited-from-fork attribution or might mean active Anthropic publication. I'm not assuming either way; I'd rather both parties be in the loop than guess wrong.
+>
+> Here's what I found. Two issues in the default configuration that line up badly:
+>
+> 1. Missing Origin and Host validation on the HTTP+SSE transport. In mcp_server_fetch/http_sse_server.py, start_server uses aiohttp's AppRunner + TCPSite directly, with no middleware in between. There's no Origin check, no Host allowlist, nothing in any before_request-style hook. I grepped the installed wheel for the usual suspects (trustedhost, add_middleware, origin, cors, before_request) zero hits on anything doing header validation. The default host="localhost" sounds defensively reasonable, but DNS rebinding works fine against it: a TTL flip on an attacker-controlled domain lets any browser tab the operator visits establish an SSE session and POST tools/call to /message?sessionId=<id>.
+>
+> 2. Inherited SSRF from the wrapped fetch tool. server.py and sse_server.py look like a fork of upstream mcp-server-fetch same prompt text, same general structure. The upstream version had a SSRF I disclosed as modelcontextprotocol/servers#4143 on May 12th. The fix landed in PR #4226 on May 22nd (scheme allowlist + IP-class denylist + per-redirect validation); I verified it. It looks like that fix hasn't been backported here your fork still has the original code, including the accidental robots.txt-fetch-first defense that fails open the moment the target host actually responds to TCP (which cloud metadata services do).
+>
+> Here's what makes the combination matter. On an EC2 host with IMDSv1 or IMDSv2-Optional, the two issues compose into unauthenticated IAM-credential exfiltration triggered by any browser tab the operator visits: DNS rebind establishes the SSE session, the session calls the fetch tool with an IMDS URL, and the credentials come back in the response body. I demonstrated the upstream SSRF on a real EC2 t3.micro on May 12th full runbook here: https://github.com/desledishant10/mcp-scan/blob/main/docs/audit-runbook-ec2-ssrf-verification.md. The same demo applies to this package; I haven't separately staged the EC2 reproduction for it because the SSRF mechanism is identical, but happy to do that if you'd like an explicit artifact.
+>
+> What I'd suggest fixing:
+>
+> 1. DNS rebinding. Add an aiohttp middleware at web.Application construction time that checks Origin against an allowlist and Host against {localhost:port, 127.0.0.1:port}. Reject everything else with 403. Small change.
+>
+> 2. SSRF. Port PR #4226 from upstream. The diff is around 100 lines and the code structure is similar enough that it translates almost verbatim. I'm happy to send you a sketch if useful.
+>
+> 3. Separate from the security issues, but worth flagging while I'm here: sse_server.py imports sse_server from mcp.server.sse, which doesn't exist in current mcp library versions (the API was renamed). The package fails at startup on mcp>=1.x. The HTTP+SSE entry point the one this disclosure is about doesn't depend on that broken import, so it's an independent issue, but you'd probably want to fix it together.
+>
+> Embargo: I'd like to coordinate disclosure for August 10th. That's about 69 days from now, shorter than the standard 90 I'm tightening it so this can publish alongside several parallel disclosures of the same class (DNS rebinding across four packages, SSRF across two), with one ecosystem-wide writeup rather than a trickle of staggered ones. If you're shipping a fix sooner, I'll align with that timing. If you need more time, just tell me and I'll extend.
+>
+> One more thing the brand attribution piece. If you're maintaining this independently of Anthropic and the "Author: Anthropic, PBC." in the metadata is left over from the fork's pyproject.toml, you'd probably want to update it to your own name with a note that the underlying fetch code is forked from Anthropic's MIT-licensed mcp-server-fetch. That mostly just heads off brand-misattribution questions down the line. If you ARE publishing this on Anthropic's behalf, the HackerOne notice should reach the right team internally and there's nothing for you to do on that piece.
+>
+> Quick context: this came out of MCP-Scan, an open-source security scanner I'm building as a capstone project. The detector rule that flagged your package is MCP-S-014. The audit trail (this disclosure record + the parallel filings on the other affected packages in the same survey) lives at https://github.com/desledishant10/mcp-scan. The detailed finding entry for your package is here: https://github.com/desledishant10/mcp-scan/blob/main/findings/2026-06-02-MCP-S-014-mcp-server-fetch-sse-dns-rebinding.md.
+>
+> Happy to review a candidate fix before you ship it, just send me a branch name.
+>
+> Thanks,
+> Dishant Desle
+> didesle7@gmail.com
+
+A day +18 catch-up on this thread was sent 2026-06-20 (quoted in the Updates entry above). No reply at any point.
+
+### To disclosure@anthropic.com, 2026-06-03 (parallel courtesy notice, as sent)
+
+Subject: "Vulnerable PyPI package with Anthropic Author attribution courtesy notification (not the mcp-server-fetch SSRF)". This triggered the `disclosure+noreply@anthropic.com` auto-responder quoted in the Updates entry above.
+
+> Hi Anthropic Security,
+>
+> Sending this as a courtesy heads-up. I want to make sure your team has visibility into a PyPI package being published with Anthropic Author attribution that may not actually be yours.
+>
+> Quick clarification upfront: this is NOT a report about mcp-server-fetch (the demo MCP server in modelcontextprotocol/servers). I'm aware the SSRF behavior in that demo is documented and your team has already addressed how you treat that class of report. My prior disclosure on the upstream SSRF (modelcontextprotocol/servers#4143) led to PR #4226 by @kgarg2468, which I independently verified on 2026-05-22. That piece is closed on my end.
+>
+> I actually tried filing this via your HackerOne program first, but the program's triage interstitial flagged it as the documented-SSRF-in-the-demo class. It isn't switching to email so the actual concern reaches a human.
+>
+> WHAT THIS IS ABOUT
+>
+> There's a separate PyPI package, mcp-server-fetch-sse v0.1.1 (uploaded 2025-06-29), which:
+>
+> 1. Lists "Author: Anthropic, PBC." and "Maintainer: Jack Adamson <jadamson@anthropic.com>" in its wheel METADATA. I can't verify from outside whether this is genuine active Anthropic maintenance or attribution inherited when someone forked the upstream pyproject.toml. PyPI doesn't verify Author claims.
+>
+> 2. Lifts its README near-verbatim from upstream mcp-server-fetch, including VS Code install badges that still point at the upstream package name and the same CAUTION block. From a downstream user's perspective, it presents as Anthropic-published.
+>
+> 3. Adds an HTTP+SSE transport (http_sse_server.py) with its own vulnerability: DNS rebinding via missing Origin/Host validation. This is a DIFFERENT attack class from the outbound-SSRF in the demo it's about the server accepting inbound requests from rebinding-attacker browser origins, not about the fetcher making outbound requests. No aiohttp middleware, no Origin check, no Host allowlist in the package.
+>
+> 4. Inherits the upstream pre-PR-#4226 SSRF code (the fetcher implementation looks like a stale fork). Noting this as evidence the fork hasn't tracked upstream, not as a separate security ask I know your guidance on that class.
+>
+> WHY I'M NOTIFYING YOUR TEAM
+>
+> Independent of whether the package is actually Anthropic-maintained, a vulnerable PyPI package distributed under your brand attribution is something your team likely wants visibility into. Possible outcomes (your call, not mine):
+>
+> - If it IS Anthropic-maintained: Jack hears the technical disclosure from me at his published maintainer address; you hear the brand-attribution context from this email; you can coordinate internally.
+> - If it is NOT: your team may want to request the PyPI metadata be corrected, request takedown, or take no action. That's a judgment call I'm not in a position to make.
+>
+> I am NOT claiming compromise of Anthropic infrastructure or Anthropic-owned systems. The vulnerability is in third-party PyPI code; the only Anthropic-specific concern is the brand attribution in the metadata.
+>
+> PRIMARY DISCLOSURE PATH
+>
+> Technical disclosure goes directly to Jack Adamson at jadamson@anthropic.com (the published maintainer-of-record) that's the channel where the actual fix happens. This email is the parallel courtesy notice for the brand-attribution piece.
+>
+> REFERENCES
+>
+> - Full finding (source-level analysis, suggested fixes): https://github.com/desledishant10/mcp-scan/blob/main/findings/2026-06-02-MCP-S-014-mcp-server-fetch-sse-dns-rebinding.md
+> - Disclosure record (this email + the direct maintainer email + the prior HackerOne attempt and why I pivoted to email): https://github.com/desledishant10/mcp-scan/blob/main/disclosures/2026-06-02-mcp-server-fetch-sse-dns-rebinding.md
+> - Prior disclosure to your team for track-record context: https://github.com/modelcontextprotocol/servers/issues/4143 (filed 2026-05-12; fix PR #4226 independently verified 2026-05-22)
+>
+> EMBARGO
+>
+> 2026-08-10, aligned with a parallel public writeup covering the broader DNS-rebind ecosystem class across several PyPI packages. Happy to extend.
+>
+> ABOUT ME
+>
+> Building MCP-Scan, an open-source MCP security scanner, as a capstone project. Audit trail at https://github.com/desledishant10/mcp-scan.
+>
+> No reply required if your team's posture is "we don't engage with third-party brand attribution" I just want the disclosure record to show your team had visibility. If you'd like additional context, happy to provide.
+>
+> Thanks,
+> Dishant Desle
+> didesle7@gmail.com
