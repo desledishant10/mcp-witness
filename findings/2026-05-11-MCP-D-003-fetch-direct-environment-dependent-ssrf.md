@@ -47,6 +47,10 @@ Byte-verified in the released sdists: the guard is absent at `2026.8.18` and pre
 
 Outcome, final: **vulnerable releases `<= 2026.8.18`; fixed by default `2026.10.10`+**. The original disclosure #4143 was closed `not_planned` and the community fix PR #4226 was closed unmerged (2026-10-28); the shipped fix (#5033) references a different issue (#4838), so this record does not claim the disclosure caused the fix. What it documents is an independent disclosure, a public reproduction maintained across three vulnerable releases, a correctly predicted fix shape, and independent verification of the shipped fix.
 
+### 2026-10-29 — both code paths verified
+
+Follow-up to the note on issue #4143 (by `@SyedAnas01`) that the `fetch` *prompt* handler called `fetch_url()` without the robots.txt gate, a second code path distinct from the `fetch` tool. Verified against the real `mcp-server-fetch==2026.10.28` over stdio MCP that both paths are refused by the #5033 guard: `tools/call fetch` and `prompts/get fetch`, each pointed at `http://169.254.169.254/latest/meta-data/...`, return *"Refused to fetch ...: ... which is not a public address. Start the server with --allow-private-ips ..."*. The guard sits at the `httpx` request-hook layer, not the robots.txt gate, so the prompt path's historical robots-bypass concern is moot. "Fixed by default" holds for both the tool and the prompt code paths.
+
 ## Reproduction
 
 Two reproductions live in the repo, complementary rather than redundant:
