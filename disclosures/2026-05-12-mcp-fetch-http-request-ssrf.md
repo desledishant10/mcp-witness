@@ -115,6 +115,15 @@ Updates to this file should reflect each of those touchpoints.
 
 ## Updates
 
+### 2026-10-29 — public #4143 thread activity (retrospective summary)
+
+Recorded for the audit trail. The public GitHub issue [modelcontextprotocol/servers#4143](https://github.com/modelcontextprotocol/servers/issues/4143) drew this activity across its lifetime:
+
+- **Closed as a duplicate of [#3741](https://github.com/modelcontextprotocol/servers/issues/3741)** by Anthropic contributor `@localden` (2026-07-29, "let's track it there"); `#3741` is dormant. This is the `not_planned` close noted in the 2026-10-28 entries below.
+- **Independent second code path flagged.** `@SyedAnas01` (author of the competing scanner `mcp-safeguard`) noted the `fetch` *prompt* handler calls `fetch_url()` without the robots.txt gate, a path distinct from the `fetch` tool. Verified 2026-10-29 that the shipped #5033 guard refuses both paths, so the concern is moot (see the "both code paths verified" note in the [SSRF finding](../findings/2026-05-11-MCP-D-003-fetch-direct-environment-dependent-ssrf.md)).
+- **Competitor / vendor engagement on-thread.** `mcp-safeguard` cross-posted its SSRF rules onto [awslabs/mcp#3623](https://github.com/awslabs/mcp/issues/3623) and [cloudflare/mcp-server-cloudflare#376](https://github.com/cloudflare/mcp-server-cloudflare/issues/376); `PolicyLayer` (policylayer-dan) and `AI Workdeck` (zeweihan) left product-promotion comments proposing proxy-layer / call-time egress controls. One comment (`@xlyoung`) was hidden as spam.
+- No maintainer engaged with the technical disclosure on-thread before the duplicate-close; the fix ultimately shipped via the separate #5033 (see below). The author posted two status updates on-thread (2026-06-20 day +39; a 2026-06-07 reply to a since-removed comment).
+
 ### 2026-10-28 — RESOLVED: fix shipped default-on upstream; tracking PR closed under new policy
 
 Three developments landed together today, resolving the `mcp-server-fetch` track.
