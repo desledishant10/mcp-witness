@@ -10,8 +10,8 @@ Exit codes:
 
 In the default harness configuration (mcp-server-fetch==2025.4.7), the
 expected outcome is 0 (vulnerability demonstrated). To verify the fix,
-rebuild with MCP_FETCH_VERSION set to a post-PR-#4226 release and
-re-run; the expected outcome becomes 1.
+rebuild with MCP_FETCH_SPEC set to a fixed release (mcp-server-fetch
+2026.10.10 or later) and re-run; the expected outcome becomes 1.
 """
 
 from __future__ import annotations
@@ -29,9 +29,17 @@ VULN_MARKER = "AKIA-FAKE"
 
 # Substrings that indicate the fix is in place. Case-insensitive match.
 FIX_MARKERS = (
+    # PR #4226 (the original community proposal, never merged) refusal wording.
     "fetching private or non-public",
     "not allowed",
     "blocked",
+    # The shipped fix (merged via modelcontextprotocol/servers#5033, PyPI
+    # 2026.10.10+) uses different wording: "Refused to fetch <url>: <host>
+    # resolves to <ip>, which is not a public address. Start the server with
+    # --allow-private-ips to allow private, loopback and link-local addresses."
+    "not a public address",
+    "refused to fetch",
+    "--allow-private-ips",
 )
 
 
@@ -190,8 +198,9 @@ async def main() -> int:
         print(" agent tool surface with no scheme/host validation. In a real")
         print(" EC2 deployment, these would be live IAM credentials.")
         print()
-        print(" disclosure: modelcontextprotocol/servers#4143")
-        print(" fix:        modelcontextprotocol/servers PR #4226 (kgarg2468)")
+        print(" disclosure: modelcontextprotocol/servers#4143 (closed not_planned)")
+        print(" fix:        shipped default-on in mcp-server-fetch 2026.10.10+")
+        print("             (merged via modelcontextprotocol/servers#5033)")
         return 0
 
     lower = result_text.lower()
@@ -200,8 +209,10 @@ async def main() -> int:
         print(" PoC RESULT: FIX VERIFIED")
         print("=" * 65)
         print(" mcp-server-fetch refused to fetch the metadata endpoint.")
-        print(" This is the post-PR-#4226 behavior (scheme allowlist +")
-        print(" RFC-reserved-range denylist + per-redirect validation).")
+        print(" This is the shipped default-on guard (merged via #5033,")
+        print(" PyPI 2026.10.10+): an RFC-reserved-range denylist enforced")
+        print(" as an httpx request hook on every redirect hop, opt-out")
+        print(" only via --allow-private-ips.")
         return 1
 
     print("=" * 65)

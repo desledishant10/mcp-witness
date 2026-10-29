@@ -39,11 +39,19 @@ At the time of closure, PR #4226 (the community-authored fix by `@kgarg2468`) wa
 
 This changes the disclosure outcome from "community fix PR open + branch-verified; awaiting maintainer merge" to **"vendor declined; consolidated to dormant umbrella; PR unmerged despite green CI + external review + independent verification."** Coordinated-disclosure obligations are satisfied: the report was received, considered, and closed by the maintainer, and the 90-day embargo policy (2026-08-10) has been observed. The public writeup describes both the technical vulnerability and the full disclosure-response chain end-to-end.
 
+## Status update (2026-10-28): RESOLVED — fixed upstream by default
+
+The vulnerability is now fixed upstream, on by default, in a shipped release. Maintainer PR [#5033](https://github.com/modelcontextprotocol/servers/pull/5033) ("fix(fetch): refuse private, loopback and metadata addresses by default", fixes #4838) merged to `v2/main` on 2026-10-05 and shipped in `mcp-server-fetch` `2026.10.10` (first guarded release) through the current `2026.10.28`. The fix adds a `_NON_PUBLIC_NETWORKS` denylist (loopback, RFC 1918, link-local `169.254.0.0/16` covering cloud metadata, `100.64.0.0/10`, `fc00::/7`, `fe80::/10`, IPv4-mapped and NAT64) enforced as an `httpx` request event hook on every request including redirect hops, on by default and bypassable only with `--allow-private-ips`.
+
+Byte-verified in the released sdists: the guard is absent at `2026.8.18` and present in `2026.10.10`+. Runtime-verified 2026-10-28 via `poc/ssrf/` `make demo-fixed-release` against `2026.10.28`: the same `fetch("http://169.254.169.254/...")` that leaked the fake `AKIA-FAKE` credential on `2025.4.7` now returns *"Refused to fetch ...: ... which is not a public address. Start the server with --allow-private-ips ..."* (exit 1, FIX VERIFIED).
+
+Outcome, final: **vulnerable releases `<= 2026.8.18`; fixed by default `2026.10.10`+**. The original disclosure #4143 was closed `not_planned` and the community fix PR #4226 was closed unmerged (2026-10-28); the shipped fix (#5033) references a different issue (#4838), so this record does not claim the disclosure caused the fix. What it documents is an independent disclosure, a public reproduction maintained across three vulnerable releases, a correctly predicted fix shape, and independent verification of the shipped fix.
+
 ## Reproduction
 
 Two reproductions live in the repo, complementary rather than redundant:
 
-- [`poc/ssrf/`](../poc/ssrf/) — containerized one-command harness. `cd poc/ssrf && make demo-full` spins up a mock IMDS at the canonical link-local IP 169.254.169.254 inside a custom Docker network, drives the real `mcp-server-fetch==2025.4.7` package via stdio JSON-RPC, and confirms vulnerability by observing the fake `AKIA-FAKE` token in the response. Verified end-to-end 2026-06-20 with exit code 0. `cd poc/ssrf && make demo-fixed` installs from the PR #4226 branch directly and confirms FIX VERIFIED with exit code 1.
+- [`poc/ssrf/`](../poc/ssrf/) — containerized one-command harness. `cd poc/ssrf && make demo-full` spins up a mock IMDS at the canonical link-local IP 169.254.169.254 inside a custom Docker network, drives the real `mcp-server-fetch==2025.4.7` package via stdio JSON-RPC, and confirms vulnerability by observing the fake `AKIA-FAKE` token in the response. Verified end-to-end 2026-06-20 with exit code 0. `cd poc/ssrf && make demo-fixed-release` installs the fixed PyPI release (`2026.10.10`+) and confirms FIX VERIFIED with exit code 1 (runtime-verified 2026-10-28); `make demo-fixed` does the same against the never-merged PR #4226 branch.
 - [`docs/audit-runbook-ec2-ssrf-verification.md`](../docs/audit-runbook-ec2-ssrf-verification.md) — runbook for verification against real EC2 with real IAM credentials (the original 2026-05-12 demonstration).
 
 ### Direct probe

@@ -7,6 +7,8 @@ description: "A survey of six PyPI-published MCP servers found two architectural
 
 **Dishant Desle**
 
+> **Update — 2026-10-28:** The SSRF half is now **resolved upstream**. `mcp-server-fetch` refuses private, loopback, link-local and cloud-metadata destinations **by default** as of the `2026.10.10` release (maintainer PR [#5033](https://github.com/modelcontextprotocol/servers/pull/5033), merged 2026-10-05; runtime-verified against the `poc/ssrf/` harness on 2026-10-28). The community fix PR #4226 this post discusses was closed **unmerged** the same week under the repo's new issues-only contribution policy; the shipped fix references a separate issue, so the resolution was independent of this disclosure. The narrative below is preserved as written (point-in-time, through 2026-09-10). The DNS-rebinding half remains unfixed across all four packages as of this update.
+
 ## TL;DR
 
 Between May and June 2026 I disclosed six vulnerabilities across six PyPI-published Python MCP servers, in two distinct classes. **Outbound SSRF** in URL-fetching tools (two packages: Anthropic's reference `mcp-server-fetch` and the community-published `mcp-server-http-request`) lets an agent coerced via prompt injection retrieve cloud-metadata-service credentials from any host where IMDS is reachable. **Inbound DNS rebinding** on HTTP-transport MCP servers (four packages: `mcp-streamablehttp-proxy`, `mcp-fetch-streamablehttp-server`, `fastmcp-http`, and `mcp-server-fetch-sse`) lets any web page the operator visits issue tool calls against their locally running MCP servers, with no agent prompt injection required. The worst case, `mcp-server-fetch-sse`, composes both: a browser-driven DNS rebind to reach the server, then an inherited pre-fix SSRF inside the wrapped fetch tool to exfiltrate IMDS credentials.
@@ -187,6 +189,8 @@ Ten lines. Per package, or once across the ecosystem.
 - **2026-08-10:** embargo expiration.
 - **2026-09-10:** post-embargo verification: PR #4226 still open and unmerged, `mcp-server-fetch` latest (v2026.8.18) still vulnerable; all four DNS-rebind packages unchanged on PyPI and still vulnerable.
 - **2026-09-11:** CVE requests filed with MITRE for all six packages (IDs pending assignment).
+- **2026-10-05:** `mcp-server-fetch` SSRF fixed upstream by maintainer PR [#5033](https://github.com/modelcontextprotocol/servers/pull/5033) (fixes #4838), refusing non-public destination IPs by default on every redirect hop; merged to `v2/main`.
+- **2026-10-28:** fix confirmed shipped default-on in `mcp-server-fetch` `2026.10.10`+ (byte-verified; runtime-verified against the `poc/ssrf/` harness on `2026.10.28`). Community fix PR #4226 closed unmerged under the repo's new issues-only contribution policy. SSRF half resolved; DNS-rebind half still unfixed.
 
 ## What the ecosystem should do
 

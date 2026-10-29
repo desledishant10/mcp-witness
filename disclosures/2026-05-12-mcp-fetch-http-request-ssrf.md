@@ -3,13 +3,13 @@
 **Filed:** 2026-05-12
 **Filed by:** Dishant Desle — didesle7@gmail.com
 **Filed to:**
-- `mcp-server-fetch`: **filed + fix PR independently verified** — issue [modelcontextprotocol/servers#4143](https://github.com/modelcontextprotocol/servers/issues/4143), fix PR [#4226](https://github.com/modelcontextprotocol/servers/pull/4226) by @kgarg2468 (opened 2026-05-22; verified 2026-05-22 that the fix closes the gap; awaiting maintainer review)
-- `mcp-server-http-request`: **filed, no response yet** — email to esteban@statespace.com, gavin@statespace.com (no public issue tracker)
+- `mcp-server-fetch`: **RESOLVED — fixed upstream by default in a shipped release** — issue [modelcontextprotocol/servers#4143](https://github.com/modelcontextprotocol/servers/issues/4143) (closed `not_planned` 2026-07-30); community fix PR [#4226](https://github.com/modelcontextprotocol/servers/pull/4226) by @kgarg2468 was never merged and was closed 2026-10-28 under the repo's new issues-only contribution policy; the vulnerability was instead fixed by maintainer PR [#5033](https://github.com/modelcontextprotocol/servers/pull/5033) (merged 2026-10-05, fixes #4838), shipped default-on in PyPI `2026.10.10`+ (see Updates 2026-10-28)
+- `mcp-server-http-request`: **maintainer-confirmed unmaintained (2026-06-11); package removed from PyPI (no longer installable) as of 2026-10-28** — email to esteban@statespace.com, gavin@statespace.com (no public issue tracker); see Updates
 **Affected:**
-- `mcp-server-fetch` v2025.4.7 (PyPI; Anthropic reference)
-- `mcp-server-http-request` v0.1.0 (PyPI; community)
+- `mcp-server-fetch` `<= 2026.8.18` (PyPI; Anthropic reference) — fixed in `2026.10.10` (first guarded release; byte-verified)
+- `mcp-server-http-request` v0.1.0 (PyPI; community) — unmaintained; no fix shipped; **removed from PyPI 2026-10-28** (no longer installable)
 **Embargo:** 2026-08-10 (90 days from filing — both packages)
-**Status:** **fix verified (mcp-server-fetch); maintainer-confirmed-unmaintained 2026-06-11 (mcp-server-http-request); awaiting yank decision**
+**Status:** **RESOLVED (mcp-server-fetch): fixed upstream by default, PyPI `2026.10.10`+, runtime-verified 2026-10-28. mcp-server-http-request: maintainer-confirmed-unmaintained 2026-06-11 and removed from PyPI 2026-10-28 (no longer installable); no fix shipped.**
 
 ---
 
@@ -114,6 +114,26 @@ Updates to this file should reflect each of those touchpoints.
 ---
 
 ## Updates
+
+### 2026-10-28 — RESOLVED: fix shipped default-on upstream; tracking PR closed under new policy
+
+Three developments landed together today, resolving the `mcp-server-fetch` track.
+
+**The vulnerability is fixed upstream, on by default, in a shipped release.** Maintainer PR [#5033](https://github.com/modelcontextprotocol/servers/pull/5033) ("fix(fetch): refuse private, loopback and metadata addresses by default", fixes #4838) merged to `v2/main` on 2026-10-05. The fix is a `_NON_PUBLIC_NETWORKS` denylist (loopback, RFC 1918, `169.254.0.0/16` link-local covering cloud metadata, `100.64.0.0/10`, `fc00::/7`, `fe80::/10`, IPv4-mapped and NAT64) checked by `_is_public_address()` and enforced as an `httpx` request event hook (`_refuse_private_destination`) that runs before every request, redirect hops included, so a public URL cannot bounce the fetch to an internal address. It is on by default and can only be disabled with `--allow-private-ips`. This is the fix shape the original disclosure asked for, and broader.
+
+**Shipped releases (byte-verified against PyPI sdists).** The guard is absent at git tag `2026.8.31` and in the last vulnerable PyPI release `2026.8.18`, and present in `2026.10.10` (first guarded release, uploaded 2026-10-11) through the current `2026.10.28` (uploaded 2026-10-28). Affected range: `<= 2026.8.18`; fixed-in release: `2026.10.10`.
+
+**Independent runtime verification.** The [`poc/ssrf/`](../poc/ssrf/) harness was re-run against `mcp-server-fetch==2026.10.28` via `make demo-fixed-release`: the same `fetch("http://169.254.169.254/latest/meta-data/...")` call that returned the fake `AKIA-FAKE` credential on `2025.4.7` now returns *"Refused to fetch ...: ... which is not a public address. Start the server with --allow-private-ips ..."* The harness classifier was updated to recognize the shipped refusal wording, which differs from the never-merged PR #4226 message.
+
+**The tracking PR was closed, not merged.** Community fix PR [#4226](https://github.com/modelcontextprotocol/servers/pull/4226) by @kgarg2468 — CI green, externally reviewed, the proposed fix this record had tracked since 2026-05-22 — was closed unmerged on 2026-10-28. The repo adopted an issues-only contribution policy (CONTRIBUTING.md: *"We accept issues, not pull requests. Design and implementation are done by the repository maintainers."*), so outside PRs are closed rather than reviewed, and the maintainer-authored #5033 superseded it.
+
+**Causation note (for honesty in any public writeup).** The original disclosure #4143 was closed `not_planned`, and the shipped fix references a different issue (#4838). This record does not claim the disclosure caused the fix. What it documents is an independent 2026-05 disclosure of the SSRF class, a public reproduction harness maintained across three vulnerable releases, and a correct prediction of the fix shape — now resolved upstream.
+
+### 2026-10-28 — mcp-server-http-request removed from PyPI (no longer installable)
+
+`mcp-server-http-request` is no longer installable from PyPI as of 2026-10-28. The programmatic JSON API (`https://pypi.org/pypi/mcp-server-http-request/json`) and the pip simple index (`https://pypi.org/simple/mcp-server-http-request/`) both return HTTP 404, whereas on 2026-09-10 the package was live and installable at 0.1.0 (a known-good control package returns 200 on the same endpoints today, so this is package-specific, not a PyPI outage).
+
+The exact mechanism — full project deletion vs. deletion of the sole 0.1.0 release — could not be confirmed from public endpoints: the HTML project page sits behind PyPI's bot-challenge and was not scraped. Either way the install vector is gone, which satisfies the yank / deprecation-notice request that had been pending with the maintainer (who confirmed the package unmaintained on 2026-06-11). Recorded as risk-removed, removal mechanism unconfirmed.
 
 ### 2026-06-11 — Gavin Chan replied on LinkedIn: package is unmaintained
 

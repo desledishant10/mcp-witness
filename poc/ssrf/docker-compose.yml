@@ -1,5 +1,6 @@
 # SSRF PoC harness — end-to-end reproduction of the mcp-server-fetch
-# SSRF disclosed at modelcontextprotocol/servers#4143 and fixed in PR #4226.
+# SSRF disclosed at modelcontextprotocol/servers#4143 and fixed upstream via
+# #5033 (shipped default-on in mcp-server-fetch 2026.10.10+).
 #
 # Two containers on a custom 169.254.0.0/16 network that lets the IMDS
 # mock claim the canonical EC2 metadata IP 169.254.169.254 internally.
@@ -8,10 +9,11 @@
 # endpoint. Vulnerable behavior is confirmed when the fake AKIA token
 # flows back through the JSON-RPC tools/call response.
 #
-# To verify the fix instead:
-#   MCP_FETCH_VERSION=<post-fix-version> docker compose up --build
-# The attacker's exit code distinguishes vulnerable, fix-verified, and
-# unexpected outcomes (see attacker/attack.py for the exit-code map).
+# To verify the fix instead (installs the fixed PyPI release):
+#   make demo-fixed-release           # mcp-server-fetch 2026.10.28
+# or set MCP_FETCH_SPEC to any pip spec. The attacker's exit code
+# distinguishes vulnerable, fix-verified, and unexpected outcomes
+# (see attacker/attack.py for the exit-code map).
 
 networks:
   metadata-net:
@@ -41,9 +43,9 @@ services:
       context: ./attacker
       args:
         # Pip-installable spec. Default is the pre-fix PyPI release. The
-        # demo-fixed Makefile target overrides this with the PR #4226
-        # branch git URL since the fix hasn't shipped to PyPI as of
-        # 2026-06-20 (see ../README.md "Fix status" for details).
+        # demo-fixed-release target overrides this with the fixed PyPI
+        # release (mcp-server-fetch 2026.10.10+); demo-fixed uses the
+        # never-merged PR #4226 branch git URL (see ../README.md).
         MCP_FETCH_SPEC: ${MCP_FETCH_SPEC:-mcp-server-fetch==2025.4.7}
     container_name: ssrf-poc-attacker
     networks:

@@ -1,30 +1,53 @@
 # SSRF PoC harness — `mcp-server-fetch` cloud-metadata reach
 
-End-to-end runnable reproduction of the SSRF in `mcp-server-fetch` disclosed at [modelcontextprotocol/servers#4143](https://github.com/modelcontextprotocol/servers/issues/4143) on 2026-05-12. **The disclosure was closed by an Anthropic contributor as "not planned" on 2026-07-30** and consolidated to the older umbrella issue [#3741](https://github.com/modelcontextprotocol/servers/issues/3741) (dormant since March 2026). The community-authored fix [PR #4226](https://github.com/modelcontextprotocol/servers/pull/4226) by `@kgarg2468` (opened 2026-05-22, CI green 16/16, external technical review complete) **remains open + unmerged**. Three releases have shipped since the disclosure (v2026.6.4, v2026.7.10, v2026.8.18); the current latest v2026.8.18 (uploaded 2026-08-18) is still vulnerable, runtime-verified via this harness on 2026-09-10.
+End-to-end runnable reproduction of the SSRF in `mcp-server-fetch` disclosed at [modelcontextprotocol/servers#4143](https://github.com/modelcontextprotocol/servers/issues/4143) on 2026-05-12, **now fixed upstream**. The vulnerability was present by default in every shipped release through `2026.8.18`, and is fixed by default from `2026.10.10` onward (maintainer PR [#5033](https://github.com/modelcontextprotocol/servers/pull/5033), merged 2026-10-05). This harness reproduces **both** states against the real package: the credential-leaking fetch on `2025.4.7`, and the refusal on `2026.10.28`.
 
-Since no vendor-shipped fix exists and no merged PR is coming, **this harness is the definitive public reproduction of the SSRF**. Anyone can verify the vulnerability against the real `mcp-server-fetch` package in ~5 seconds without an AWS account, and verify the community-proposed fix via `make demo-fixed` (which installs from PR #4226's branch directly).
+Anyone can verify either state against the real `mcp-server-fetch` package in ~5 seconds without an AWS account: `make demo-full` for the vulnerable pre-fix behavior, `make demo-fixed-release` for the shipped fix.
 
 Companion to [`poc/dns-rebind/`](../dns-rebind/). Both disclosed vulnerability classes (outbound SSRF and inbound DNS rebinding) have a `make demo` reproduction.
 
 This harness is **not embargoed**. The vulnerability is public via the upstream GitHub issue; the harness just packages reproduction.
 
-## Fix status (2026-06-20)
+## Disclosure timeline
 
-Three states verified end-to-end against this harness on 2026-06-20:
+| Date | Event |
+|---|---|
+| 2026-05-12 | SSRF disclosed as [#4143](https://github.com/modelcontextprotocol/servers/issues/4143) (affected `mcp-server-fetch` v2025.4.7) |
+| 2026-05-22 | Community fix PR [#4226](https://github.com/modelcontextprotocol/servers/pull/4226) opened by @kgarg2468; independently verified against this harness |
+| 2026-07-30 | #4143 closed `not_planned`, consolidated to dormant umbrella #3741 |
+| 2026-09-10 | Latest release at the time (`2026.8.18`) runtime-verified still vulnerable via this harness |
+| 2026-10-05 | Maintainer PR [#5033](https://github.com/modelcontextprotocol/servers/pull/5033) ("refuse private, loopback and metadata addresses by default", fixes #4838) merged to `v2/main` |
+| 2026-10-28 | PR #4226 closed unmerged under the repo's new issues-only contribution policy; fix confirmed shipped default-on (below) |
+
+The shipped fix (#5033) is the fix shape the original disclosure asked for, and broader. This record does **not** claim #4143 caused it: #4143 was closed `not_planned` and #5033 references a different issue (#4838). What it documents is an independent disclosure of the SSRF class, a public reproduction maintained across three vulnerable releases, and a correct prediction of the fix shape, now resolved upstream.
+
+## Fix status — RESOLVED (verified 2026-10-28)
+
+States verified end-to-end against this harness:
 
 | State | Source spec | Result | Exit |
 |---|---|---|---|
 | Pre-fix (disclosed version) | `mcp-server-fetch==2025.4.7` | VULNERABLE — fake `AKIA-FAKE` token returned in the JSON-RPC response | 0 |
-| Latest PyPI release | `mcp-server-fetch==2026.8.18` (current) | **VULNERABLE, fix still in no release** (runtime-verified 2026-09-10) | 0 |
-| PR #4226 branch (the proposed fix) | `git+https://github.com/modelcontextprotocol/servers.git@refs/pull/4226/head#subdirectory=src/fetch` | FIX VERIFIED — *"Fetching private or non-public IP addresses is not allowed"* | 1 |
+| Last vulnerable release | `mcp-server-fetch==2026.8.18` | VULNERABLE (runtime-verified 2026-09-10) | 0 |
+| First fixed release | `mcp-server-fetch==2026.10.10` | guard byte-present (denylist + request hook) | — |
+| Current release | `mcp-server-fetch==2026.10.28` | **FIX VERIFIED** — metadata fetch refused (runtime-verified 2026-10-28) | 1 |
 
-`make demo-fixed` runs the third row above by default. Until the fix lands in a PyPI release, that's the only way to verify the fixed code path against the real `mcp-server-fetch` package surface.
+`make demo-fixed-release` runs the last row (installs the fixed release from PyPI). `make demo-full` runs the first row (the pre-fix reproduction). `make demo-fixed` is retained as a historical check against the never-merged PR #4226 branch.
 
 ## What this demonstrates
 
-`mcp-server-fetch` v2025.4.7 (and earlier) exposes a `fetch` tool that accepts any URL from an agent tool call and proxies it through `httpx.get()` with no scheme allowlist, no host denylist, and no protection against RFC-reserved-range addresses. An agent coerced via prompt injection into calling `fetch("http://169.254.169.254/latest/meta-data/iam/security-credentials/<role>/")` on a cloud-hosted host running IMDSv1 or IMDSv2-Optional will retrieve live IAM credentials.
+`mcp-server-fetch` `<= 2026.8.18` exposes a `fetch` tool that accepts any URL from an agent tool call and proxies it through `httpx` with no scheme allowlist, no host denylist, and no protection against RFC-reserved-range addresses. An agent coerced via prompt injection into calling `fetch("http://169.254.169.254/latest/meta-data/iam/security-credentials/<role>/")` on a cloud-hosted host running IMDSv1 or IMDSv2-Optional will retrieve live IAM credentials.
 
-The PR #4226 fix adds: scheme allowlist (`http`, `https` only), RFC-reserved-range denylist (loopback, link-local, private, reserved, multicast, unspecified), and per-redirect validation (the destination of every HTTP redirect is re-validated). The same `fetch` call that previously returned credentials now returns *"Fetching private or non-public IP addresses is not allowed."*
+The fix shipped in `2026.10.10`+ (merged via #5033) adds a `_NON_PUBLIC_NETWORKS` denylist (loopback, RFC 1918, link-local `169.254.0.0/16` covering cloud metadata, `100.64.0.0/10`, `fc00::/7`, `fe80::/10`, IPv4-mapped and NAT64), checked by `_is_public_address()` and enforced as an `httpx` request event hook that runs before every request, redirect hops included. It is on by default; `--allow-private-ips` opts out. The same `fetch` call that previously returned credentials now returns:
+
+```
+Error executing tool fetch: Refused to fetch http://169.254.169.254/robots.txt:
+169.254.169.254 resolves to 169.254.169.254, which is not a public address.
+Start the server with --allow-private-ips to allow private, loopback and
+link-local addresses.
+```
+
+The refusal fires on the `robots.txt` pre-check (same host), so the metadata request never leaves the process.
 
 ## Architecture
 
@@ -44,7 +67,7 @@ The PR #4226 fix adds: scheme allowlist (`http`, `https` only), RFC-reserved-ran
 
 Two containers on a custom `169.254.0.0/16` Docker bridge network. The IMDS mock claims the canonical EC2 metadata IP `169.254.169.254` inside the network and serves fake (but realistic-shaped) IAM credentials.
 
-The attacker container spawns `python -m mcp_server_fetch` as a stdio subprocess, runs the MCP protocol handshake, and issues a single `tools/call` against the `fetch` tool with the IMDS metadata URL. The pre-fix `fetch` returns the body of the HTTP response. The attacker inspects that body for the `AKIA-FAKE` literal that the IMDS mock embeds in its fake credential response. If the literal appears, the vulnerability is confirmed and the attacker container exits 0.
+The attacker container spawns `python -m mcp_server_fetch` as a stdio subprocess, runs the MCP protocol handshake, and issues a single `tools/call` against the `fetch` tool with the IMDS metadata URL. The pre-fix `fetch` returns the body of the HTTP response. The attacker inspects that body for the `AKIA-FAKE` literal that the IMDS mock embeds in its fake credential response. If the literal appears, the vulnerability is confirmed and the attacker container exits 0. A fixed release refuses the fetch and the attacker exits 1.
 
 ## Credential values are obviously fake
 
@@ -70,13 +93,16 @@ cd poc/ssrf/
 # Fast Python-only probe (no Docker required)
 make demo-quick
 
-# Full containerized end-to-end (requires Docker)
+# Full containerized end-to-end against the vulnerable v2025.4.7 (requires Docker)
 make demo-full
 
-# Both, sequentially
+# demo-quick, then demo-full
 make demo
 
-# Verify the fix against the PR #4226 branch (no fixed PyPI release exists)
+# Verify the shipped fix against the real fixed PyPI release (2026.10.28)
+make demo-fixed-release
+
+# Historical: verify against the never-merged PR #4226 branch
 make demo-fixed
 
 # Verify against a specific pip-installable spec (release or git URL)
@@ -119,21 +145,25 @@ make clean
  mcp-server-fetch retrieved cloud-metadata credentials via the
  agent tool surface with no scheme/host validation.
 
- disclosure: modelcontextprotocol/servers#4143
- fix:        modelcontextprotocol/servers PR #4226 (kgarg2468)
+ disclosure: modelcontextprotocol/servers#4143 (closed not_planned)
+ fix:        shipped default-on in mcp-server-fetch 2026.10.10+ (via #5033)
 ```
 
-## Expected output (demo-fixed, post-PR-#4226)
+## Expected output (demo-fixed-release, fixed — verified 2026-10-28)
 
 ```
 =================================================================
  mcp-witness SSRF PoC reproduction
 =================================================================
- mcp-server-fetch version: <post-fix-version>
+ mcp-server-fetch version: 2026.10.28
+ target URL: http://169.254.169.254/latest/meta-data/iam/security-credentials/poc-demo-role
  ...
 
 ---  response body  ---
-Fetching private or non-public IP addresses is not allowed.
+Error executing tool fetch: Refused to fetch http://169.254.169.254/robots.txt:
+169.254.169.254 resolves to 169.254.169.254, which is not a public address.
+Start the server with --allow-private-ips to allow private, loopback and
+link-local addresses.
 --- (end response) ----
 
 =================================================================
@@ -148,7 +178,7 @@ Useful for CI / monitoring. The Docker compose `--exit-code-from attacker` flag 
 | Code | Meaning |
 |---|---|
 | 0 | VULNERABLE — `AKIA-FAKE` came back in the JSON-RPC response |
-| 1 | FIX VERIFIED — the post-PR-#4226 refusal message came back |
+| 1 | FIX VERIFIED — the refusal message came back |
 | 2 | INFRASTRUCTURE FAILURE — couldn't spawn mcp-server-fetch, couldn't reach IMDS, etc |
 | 3 | UNEXPECTED — response matched neither pattern |
 
@@ -158,7 +188,7 @@ Useful for CI / monitoring. The Docker compose `--exit-code-from attacker` flag 
 
 ```
 poc/ssrf/
-├── Makefile             demo / demo-quick / demo-full / demo-fixed / clean
+├── Makefile             demo / demo-quick / demo-full / demo-fixed-release / demo-fixed / clean
 ├── README.md            this file
 ├── docker-compose.yml   custom 169.254.0.0/16 network + service definitions
 ├── quick_probe.py       pure-Python no-Docker probe (~3 seconds, no install)
@@ -172,13 +202,14 @@ poc/ssrf/
 
 ## Why this matters
 
-The original disclosure was verified on EC2 with real IAM credentials in [`docs/audit-runbook-ec2-ssrf-verification.md`](../../docs/audit-runbook-ec2-ssrf-verification.md). That runbook is still the right tool for verifying against real cloud infrastructure. This harness is the right tool for everyone else: anyone reading the disclosure record who wants to confirm the vulnerability shape can do so with `make demo-full` instead of standing up AWS infrastructure.
+The original disclosure was verified on EC2 with real IAM credentials in [`docs/audit-runbook-ec2-ssrf-verification.md`](../../docs/audit-runbook-ec2-ssrf-verification.md). That runbook is still the right tool for verifying against real cloud infrastructure. This harness is the right tool for everyone else: anyone reading the disclosure record who wants to confirm either the vulnerable shape or the shipped fix can do so with `make demo-full` / `make demo-fixed-release` instead of standing up AWS infrastructure.
 
 The pairing of `poc/dns-rebind/` + `poc/ssrf/` makes the mcp-witness reproduction-harness collection a coherent artifact independent of the scanner itself. Each disclosed vulnerability class has a one-command reproduction.
 
 ## Related
 
 - Finding entry: [`findings/2026-05-11-MCP-D-003-fetch-direct-environment-dependent-ssrf.md`](../../findings/2026-05-11-MCP-D-003-fetch-direct-environment-dependent-ssrf.md)
-- Disclosure record: tracked at [modelcontextprotocol/servers#4143](https://github.com/modelcontextprotocol/servers/issues/4143)
+- Disclosure record: [`disclosures/2026-05-12-mcp-fetch-http-request-ssrf.md`](../../disclosures/2026-05-12-mcp-fetch-http-request-ssrf.md) (tracks the full disclosure-to-resolution timeline)
+- Upstream issue: [modelcontextprotocol/servers#4143](https://github.com/modelcontextprotocol/servers/issues/4143) (closed `not_planned`); shipped fix [#5033](https://github.com/modelcontextprotocol/servers/pull/5033)
 - Fix verification runbook (real EC2): [`docs/audit-runbook-ec2-ssrf-verification.md`](../../docs/audit-runbook-ec2-ssrf-verification.md)
 - Sibling DNS-rebind harness: [`poc/dns-rebind/`](../dns-rebind/)

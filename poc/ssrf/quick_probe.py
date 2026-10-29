@@ -121,7 +121,7 @@ def main() -> int:
     print("=" * 65)
     print()
     print(" disclosure: modelcontextprotocol/servers#4143")
-    print(" fix:        modelcontextprotocol/servers PR #4226 (kgarg2468)")
+    print(" fix:        shipped default-on in mcp-server-fetch 2026.10.10+ (via #5033)")
     print(" embargo:    not embargoed; vulnerability publicly disclosed 2026-05-12.")
     print()
 

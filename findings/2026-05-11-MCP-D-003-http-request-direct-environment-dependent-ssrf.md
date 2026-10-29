@@ -4,7 +4,7 @@
 **Target:** `mcp-server-http-request` v0.1.0 (PyPI; community-published)
 **Tested by:** [scenarios/MCP-D-003-ssrf-url-fetcher.yaml](../scenarios/MCP-D-003-ssrf-url-fetcher.yaml) + a targeted follow-up probe
 **Agent driver:** n/a (direct mode — harness as MCP client)
-**Outcome:** **VULNERABILITY (disclosure email-filed 2026-05-12)** — same class as the [mcp-server-fetch finding](2026-05-11-MCP-D-003-fetch-direct-environment-dependent-ssrf.md), which was demonstrated on EC2 the same day. Coordinated disclosure sent direct to maintainers (`esteban@statespace.com`, `gavin@statespace.com`) since no public issue tracker is listed on PyPI. Embargo: 2026-08-10.
+**Outcome:** **VULNERABILITY (disclosure email-filed 2026-05-12)** — same class as the [mcp-server-fetch finding](2026-05-11-MCP-D-003-fetch-direct-environment-dependent-ssrf.md), which was demonstrated on EC2 the same day. Coordinated disclosure sent direct to maintainers (`esteban@statespace.com`, `gavin@statespace.com`) since no public issue tracker is listed on PyPI. Embargo: 2026-08-10. **Update: maintainer-confirmed unmaintained (2026-06-11); package removed from PyPI and no longer installable as of 2026-10-28 (JSON API + pip simple index both 404; was live at 0.1.0 on 2026-09-10; removal mechanism unconfirmed, HTML page bot-walled).**
 
 ## Result
 
