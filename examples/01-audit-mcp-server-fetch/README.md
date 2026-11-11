@@ -76,7 +76,7 @@ S-001 tells you the tool's description steers the model toward fetching things. 
 
 On a cloud host with IMDS reachable, the URL someone wants the agent to call is `http://169.254.169.254/latest/meta-data/iam/security-credentials/<role>/`. The agent, prompt-injected from any number of sources, calls `fetch` with that URL. The server retrieves it. The credentials come back in the response.
 
-That chain is what produced the EC2 reproduction (see `findings/`) and the disclosure that landed in PR [#4226](https://github.com/modelcontextprotocol/servers/pull/4226).
+That chain is what produced the EC2 reproduction (see `findings/`) and the disclosure behind the upstream SSRF fix (shipped by default in `2026.10.10`+ via PR [#5033](https://github.com/modelcontextprotocol/servers/pull/5033); the earlier community PR [#4226](https://github.com/modelcontextprotocol/servers/pull/4226) never merged).
 
 ## How to apply this to your own MCP servers
 

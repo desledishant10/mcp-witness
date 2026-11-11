@@ -20,7 +20,7 @@ mcp-witness-analyze captured-mcp-server-http-request.json
 2 findings.
 ```
 
-One `fetch` tool with a URL parameter, no constraint, no validation language. Disclosed as [modelcontextprotocol/servers#4143](https://github.com/modelcontextprotocol/servers/issues/4143); fix shipped in [PR #4226](https://github.com/modelcontextprotocol/servers/pull/4226).
+One `fetch` tool with a URL parameter, no constraint, no validation language. Disclosed as [modelcontextprotocol/servers#4143](https://github.com/modelcontextprotocol/servers/issues/4143); fixed upstream by default in `2026.10.10`+ via maintainer [PR #5033](https://github.com/modelcontextprotocol/servers/pull/5033) (the community fix [PR #4226](https://github.com/modelcontextprotocol/servers/pull/4226) was closed unmerged).
 
 ### `mcp-server-http-request` (community; five tools, five URL parameters)
 
@@ -46,7 +46,7 @@ This is the more important finding. It's not "a buggy package." It's "an ecosyst
 
 ## What "responsible" looks like as a code change
 
-The fix is small and shared. The PR [#4226](https://github.com/modelcontextprotocol/servers/pull/4226) that landed for `mcp-server-fetch` is the reference implementation; it added:
+The fix is small and shared. The shipped fix (maintainer [PR #5033](https://github.com/modelcontextprotocol/servers/pull/5033), merged 2026-10-05, default-on in `2026.10.10`+) refuses non-public destination IPs by default on every request and redirect hop. The earlier community [PR #4226](https://github.com/modelcontextprotocol/servers/pull/4226), since closed unmerged, proposed the same defensive shape:
 
 - Scheme allowlist (`http`, `https` only)
 - IP-class denylist (link-local `169.254/16`, loopback `127/8`, `::1`, RFC 1918 ranges, IPv6 ULA `fc00::/7`)

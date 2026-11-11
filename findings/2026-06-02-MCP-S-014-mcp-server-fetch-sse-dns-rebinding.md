@@ -13,7 +13,7 @@
 1. Binds to `localhost` (loopback). Rebindable from a browser context — a DNS-rebind attack against `localhost` works the same way it does against `127.0.0.1`, because the rebind primitive is the attacker's *domain*, not the resolved IP.
 2. Uses aiohttp `web.AppRunner` + `web.TCPSite(runner, host, port)`. No middleware is registered anywhere — repo-wide grep across `__init__.py`, `__main__.py`, `__main_sse__.py`, `http_sse_server.py`, `server.py`, and `sse_server.py` for `trustedhost|add_middleware|origin|cors|before_request|host_header` returns zero matches.
 3. The SSE-transport handler (`handle_sse`) accepts new sessions for any incoming GET — there is no allowlist, no origin pinning, no per-host gating. A rebound attacker page can establish its own session and then POST to `/message?sessionId=<that_session_id>`.
-4. The wrapped `fetch` tool is functionally a fork of upstream `mcp-server-fetch` (the README is lifted verbatim from upstream, including the same `Authenticated` user-agent banner pointing at `modelcontextprotocol/servers`, and the `server.py` and `sse_server.py` files share identical comments and tool prompts). It thus inherits the **same SSRF vulnerability** that [PR #4226](https://github.com/modelcontextprotocol/servers/pull/4226) fixed upstream — no scheme allowlist, no IP-class denylist, accidental robots.txt-fetch-first defense.
+4. The wrapped `fetch` tool is functionally a fork of upstream `mcp-server-fetch` (the README is lifted verbatim from upstream, including the same `Authenticated` user-agent banner pointing at `modelcontextprotocol/servers`, and the `server.py` and `sse_server.py` files share identical comments and tool prompts). It thus inherits the **same SSRF vulnerability** that was fixed upstream by default in `2026.10.10`+ (maintainer [PR #5033](https://github.com/modelcontextprotocol/servers/pull/5033); the community [PR #4226](https://github.com/modelcontextprotocol/servers/pull/4226) was closed unmerged) — no scheme allowlist, no IP-class denylist, accidental robots.txt-fetch-first defense.
 
 The compounding shape (DNS-rebind → session establish → SSRF the wrapped fetch tool) makes the package a credential-exfiltration vector on cloud-deployed hosts, even though its default `host="localhost"` looks defensively reasonable on first glance.
 
@@ -93,7 +93,7 @@ $ grep -rin "trustedhost\|add_middleware\|origin\|cors\|before_request\|host_hea
 """Although originally you did not have internet access, and were advised to refuse and tell the user this, this tool now grants you internet access. ..."""
 ```
 
-Identical text to upstream `mcp-server-fetch` v2025.4.7 `src/fetch/src/mcp_server_fetch/server.py`. The HTTP-fetch implementation is a fork (or near-verbatim copy) of upstream's, with no scheme allowlist, no IP-class denylist, and the same accidental robots.txt-first defense documented in [findings/2026-05-11-MCP-D-003-fetch-direct-environment-dependent-ssrf.md](2026-05-11-MCP-D-003-fetch-direct-environment-dependent-ssrf.md). The upstream fix shipped in [PR #4226](https://github.com/modelcontextprotocol/servers/pull/4226); this fork has **not** taken it.
+Identical text to upstream `mcp-server-fetch` v2025.4.7 `src/fetch/src/mcp_server_fetch/server.py`. The HTTP-fetch implementation is a fork (or near-verbatim copy) of upstream's, with no scheme allowlist, no IP-class denylist, and the same accidental robots.txt-first defense documented in [findings/2026-05-11-MCP-D-003-fetch-direct-environment-dependent-ssrf.md](2026-05-11-MCP-D-003-fetch-direct-environment-dependent-ssrf.md). The upstream fix shipped in `2026.10.10`+ via maintainer [PR #5033](https://github.com/modelcontextprotocol/servers/pull/5033) (the community [PR #4226](https://github.com/modelcontextprotocol/servers/pull/4226) was closed unmerged); this fork has **not** taken it.
 
 ## Reproduction
 
@@ -173,7 +173,7 @@ The interesting wrinkle is the **PyPI attribution**: the wheel's METADATA lists 
    app = web.Application(middlewares=[origin_host_validator])
    ```
 
-2. **Inherit the upstream SSRF fix** from `mcp-server-fetch` PR [#4226](https://github.com/modelcontextprotocol/servers/pull/4226). Scheme allowlist, IP-class denylist, per-redirect validation. Since this package is a fork of the upstream code, the patch translates near-verbatim.
+2. **Inherit the upstream SSRF fix** from `mcp-server-fetch` (shipped by default in `2026.10.10`+ via maintainer PR [#5033](https://github.com/modelcontextprotocol/servers/pull/5033); the community PR [#4226](https://github.com/modelcontextprotocol/servers/pull/4226) was closed unmerged). Scheme allowlist, IP-class denylist, per-redirect validation. Since this package is a fork of the upstream code, the patch translates near-verbatim.
 
 3. **Document that 0.0.0.0 deployment requires an external auth layer** — startup banner or `--insecure-allow-public-bind` opt-in flag, mirroring the suggestion made to `atrawog` (whose `mcp-fetch-streamablehttp-server` shares the same architectural pattern).
 

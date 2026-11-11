@@ -52,7 +52,7 @@ Twelve documented audit observations against eleven PyPI-published servers, capt
 | 2026-05-11 | `mcp-server-aidd` | [D-002 (direct path-traversal)](findings/2026-05-11-MCP-D-002-aidd-direct-defense.md) | Defense (allowed-directory containment working) |
 | 2026-05-11 | `mcp-server-aidd` | [S-001 + S-002 + S-005 (static, multi-hit)](findings/2026-05-11-aidd-three-rule-multi-hit.md) | Info (3 simultaneous rules — pattern stress test) |
 
-Each entry includes reproduction commands, the raw trace, an interpretation, caveats, and a disclosure recommendation. **Two CVE-track classes, all six now public with CVE requests filed (2026-09-11): SSRF in stdio fetch servers (2 packages; 1 vendor-declined with a branch-verified fix left unmerged, 1 maintainer-confirmed unmaintained) and DNS rebinding in HTTP-transport servers (4 packages, all silent-with-no-fix).**
+Each entry includes reproduction commands, the raw trace, an interpretation, caveats, and a disclosure recommendation. **Two CVE-track classes, all six now public with CVE requests filed (2026-09-11): SSRF in stdio fetch servers (2 packages; 1 fixed upstream by default in `2026.10.10`+ via maintainer PR #5033 — original disclosure #4143 closed "not planned" and community PR #4226 closed unmerged; 1 maintainer-confirmed unmaintained, package since removed from PyPI) and DNS rebinding in HTTP-transport servers (4 packages, all silent-with-no-fix).**
 
 ## Quickstart — audit any pip-installable MCP server in one command
 
@@ -80,7 +80,7 @@ Capability tags: net_egress
 Capture saved to: calibration/reports/captured-mcp-server-fetch.json
 ```
 
-Two real findings on the official Anthropic reference server, surfaced from one `mcp-witness-audit` command — one at the description level (S-001 catches agent-directed instructions in the tool's docstring), one at the schema level (S-009 catches the missing SSRF allowlist). The SSRF one was [demonstrated end-to-end on EC2](findings/2026-05-11-MCP-D-003-fetch-direct-environment-dependent-ssrf.md) with real IAM credentials retrieved, disclosed via #4143, and fixed by PR #4226 (verified).
+Two real findings on the official Anthropic reference server, surfaced from one `mcp-witness-audit` command — one at the description level (S-001 catches agent-directed instructions in the tool's docstring), one at the schema level (S-009 catches the missing SSRF allowlist). The SSRF one was [demonstrated end-to-end on EC2](findings/2026-05-11-MCP-D-003-fetch-direct-environment-dependent-ssrf.md) with real IAM credentials retrieved, disclosed via #4143, and fixed upstream by default in `2026.10.10`+ via maintainer PR #5033 (the community fix PR #4226 was closed unmerged).
 
 ## What's inside
 
@@ -198,7 +198,7 @@ mcp-witness/
 |---|---|---|
 | 1 — Static analyzer | weeks 1–6 | **Complete.** All 14 v0.1 rules implemented (S-001..S-014); v0.3 patches W1–W4 closed the DNS-rebind detector gap surfaced by the survey. Python AST + captured-JSON modes + repo-level scanning; CLI with severity filtering and CI-friendly exit codes. |
 | 2 — Dynamic harness | weeks 7–14 | Substantially complete: direct + proxy modes, two agent drivers, 7 scenarios runnable end-to-end against real servers. |
-| 3 — Real-world audit | weeks 15–20 | **Substantially complete.** 12 documented findings against 11 PyPI-published servers, plus a [DNS-rebinding class survey](findings/2026-05-12-dns-rebinding-survey.md). Two CVE-track classes: SSRF in fetch-family servers (2 packages disclosed; 1 vendor-declined outcome with community fix PR unmerged; 1 maintainer-confirmed unmaintained 2026-06-11) and DNS rebinding in HTTP-transport servers (4 packages, all under coordinated disclosure with 2026-08-10 embargo). |
+| 3 — Real-world audit | weeks 15–20 | **Substantially complete.** 12 documented findings against 11 PyPI-published servers, plus a [DNS-rebinding class survey](findings/2026-05-12-dns-rebinding-survey.md). Two CVE-track classes: SSRF in fetch-family servers (2 packages disclosed; 1 fixed upstream by default in `2026.10.10`+ via maintainer PR #5033 while the community PR #4226 was closed unmerged; 1 maintainer-confirmed unmaintained 2026-06-11, package since removed from PyPI) and DNS rebinding in HTTP-transport servers (4 packages, all under coordinated disclosure with 2026-08-10 embargo). |
 | 4 — Polish + publish | weeks 21–26 | **In flight.** Three technical writeups published to GitHub Pages: the [transport-layer synthesis](https://desledishant10.github.io/mcp-witness/docs/mcp-transport-layer-blind-spot), [SSRF](https://desledishant10.github.io/mcp-witness/docs/ssrf-mcp-server-fetch), and the [DNS-rebinding class](https://desledishant10.github.io/mcp-witness/docs/dns-rebinding-http-mcp-servers); EC2 audit runbook in [docs/](docs/). PyPI release shipped (v0.3.1); conference submission queued. |
 
 ## Scope and non-goals

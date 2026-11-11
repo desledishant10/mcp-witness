@@ -7,7 +7,7 @@ description: "A survey of six PyPI-published MCP servers found two architectural
 
 **Dishant Desle**
 
-> **Update — 2026-10-28:** The SSRF half is now **resolved upstream**. `mcp-server-fetch` refuses private, loopback, link-local and cloud-metadata destinations **by default** as of the `2026.10.10` release (maintainer PR [#5033](https://github.com/modelcontextprotocol/servers/pull/5033), merged 2026-10-05; runtime-verified against the `poc/ssrf/` harness on 2026-10-28). The community fix PR #4226 this post discusses was closed **unmerged** the same week under the repo's new issues-only contribution policy; the shipped fix references a separate issue, so the resolution was independent of this disclosure. The narrative below is preserved as written (point-in-time, through 2026-09-10). The DNS-rebinding half remains unfixed across all four packages as of this update.
+> **Update (2026-10-28):** The SSRF half is now **resolved upstream**. `mcp-server-fetch` refuses private, loopback, link-local and cloud-metadata destinations **by default** as of the `2026.10.10` release (maintainer PR [#5033](https://github.com/modelcontextprotocol/servers/pull/5033), merged 2026-10-05; runtime-verified against the `poc/ssrf/` harness on 2026-10-28). The community fix PR #4226 this post discusses was closed **unmerged** the same week under the repo's new issues-only contribution policy; the shipped fix references a separate issue, so the resolution was independent of this disclosure. The narrative below is preserved as written (point-in-time, through 2026-09-10). The DNS-rebinding half remains unfixed across all four packages as of this update.
 
 ## TL;DR
 
